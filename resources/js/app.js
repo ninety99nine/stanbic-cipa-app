@@ -14,8 +14,8 @@ createApp({
             resolveComponent: (name) => require(`./Pages/${name}`).default,
         }),
 })
-    .mixin({ methods: { route } })
-    .use(InertiaPlugin)
-    .mount(el);
+.mixin({ methods: { route } })
+.use(InertiaPlugin)
+.mount(el);
 
-InertiaProgress.init({ color: '#4B5563' });
+InertiaProgress.init({ color: '#1E40AF' });

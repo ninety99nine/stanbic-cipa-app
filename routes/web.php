@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Application;
+use RicorocksDigitalAgency\Soap\Facades\Soap;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +27,21 @@ Route::get('/', function () {
     ]);
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function (Request $request) {
+
+    //  Set Auth Credentials
+    $username = 'apiBursR2bc6JhrY1iyFVQNWdoZ845H';
+    $password = '15EKveY1US572yrycjaw5zoBBim1NQpH';
+
+    //  Set Endpoint
+    $url = 'https://suppre.cipa.support.fostermoore.com/ng-cipa-companies/soap/viewCompanyWS.wsdl';
+
+    // Run API Call With Basic Authentication
+    $response = Soap::to($url)->withBasicAuth($username, $password)->viewCompanyWS(['TxnBusinessIdentifier' => 'BW00001125314']);
+
+    //  Return response to Dashboard
+    return Inertia::render('Dashboard', [
+        'response' => $response
+    ]);
+
 })->name('dashboard');

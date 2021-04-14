@@ -8,11 +8,16 @@
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+                <div class="bg-white overflow-hidden shadow-xl sm:rounded-sm">
+
+                    response: {{ response }}
+
                     <welcome />
+
                 </div>
             </div>
         </div>
+
     </app-layout>
 </template>
 
@@ -21,6 +26,18 @@
     import Welcome from '@/Jetstream/Welcome'
 
     export default {
+
+        props: {
+            user: {
+                type: Object,
+                default: null
+            },
+            response: {
+                type: Object,
+                default: null
+            }
+        },
+
         components: {
             AppLayout,
             Welcome,
