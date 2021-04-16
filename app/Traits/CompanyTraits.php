@@ -4,10 +4,45 @@ namespace App\Traits;
 
 use Carbon\Carbon;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
+use App\Http\Resources\Company as CompanyResource;
+use App\Http\Resources\Companies as CompaniesResource;
 
 trait CompanyTraits
 {
     public $company = null;
+
+    /**
+     *  This method transforms a collection or single model instance
+     */
+    public function convertToApiFormat($collection = null)
+    {
+        try {
+
+            // If this instance is a collection or a paginated collection
+            if( $collection instanceof \Illuminate\Support\Collection ||
+                $collection instanceof \Illuminate\Pagination\LengthAwarePaginator ){
+
+                //  Transform the multiple instances
+                return new CompaniesResource($collection);
+
+            // If this instance is not a collection
+            }elseif($this instanceof \App\Models\Company){
+
+                //  Transform the single instance
+                return new CompanyResource($this);
+
+            }else{
+
+                return $collection ?? $this;
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
 
     /**
      *  This method creates a new company
@@ -177,7 +212,7 @@ trait CompanyTraits
     /**
      *  This method returns a list of companies
      */
-    public function getResources($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    public function getResources($data = [], $builder = null, $paginate = true)
     {
         try {
 
@@ -196,7 +231,7 @@ trait CompanyTraits
             }else{
 
                 //  Get the companies
-                $companies = \App\Models\Company::orderBy('arrangement');
+                $companies = \App\Models\Company::latest();
 
             }
 
@@ -204,7 +239,7 @@ trait CompanyTraits
             $companies = $this->filterResources($data, $companies);
 
             //  Return companies
-            return $this->collectionResponse($data, $companies, $paginate, $convert_to_api_format);
+            return $this->collectionResponse($data, $companies, $paginate);
 
         } catch (\Exception $e) {
 
@@ -255,7 +290,7 @@ trait CompanyTraits
         $statuses = [];
 
         //  Set the status filters e.g ["registered", "cancelled", "removed", ...] or "registered,cancelled,removed, ..."
-        $status_filters = $data['status'] ?? $data;
+        $status_filters = $data['status'];
 
         //  If the filters are provided as String format e.g "registered,cancelled,removed"
         if( is_string($status_filters) ){
@@ -286,9 +321,9 @@ trait CompanyTraits
 
             $filterByCompanyStatuses = collect($statuses)->filter(function($status){
                 return in_array($status, ['Registered', 'Cancelled', 'Removed']);
-            });
+            })->toArray();
 
-            if( $filterByCompanyStatuses ){
+            if( count($filterByCompanyStatuses) ){
 
                 $companies = $companies->companyStatus($filterByCompanyStatuses);
 
@@ -299,10 +334,10 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanyType = collect($statuses)->filter(function($status){
-                return in_array($status, ['Private Company', 'a', 'b', 'c']);
-            });
+                return in_array($status, ['Private Company', 'LLC Company']);
+            })->toArray();
 
-            if( $filterByCompanyType ){
+            if( count($filterByCompanyType) ){
 
                 $companies = $companies->companyType($filterByCompanyType);
 
@@ -313,10 +348,10 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanySubType = collect($statuses)->filter(function($status){
-                return in_array($status, ['d', 'e', 'f']);
-            });
+                return in_array($status, ['Type A', 'Type B']);
+            })->toArray();
 
-            if( $filterByCompanySubType ){
+            if( count($filterByCompanySubType) ){
 
                 $companies = $companies->companySubType($filterByCompanySubType);
 
@@ -330,7 +365,7 @@ trait CompanyTraits
 
                 $companies = $companies->exempt();
 
-            }elseif( in_array('Not-Exempt', $statuses) ){
+            }elseif( in_array('Not Exempt', $statuses) ){
 
                 $companies = $companies->notExempt();
 
@@ -341,12 +376,12 @@ trait CompanyTraits
              *******************************/
 
             //  If we want only foreign companies and not local companies
-            if( in_array('Foreign', $statuses) && !in_array('Not-Foreign', $statuses) ){
+            if( in_array('Foreign Company', $statuses) && !in_array('Local Company', $statuses) ){
 
                 $companies = $companies->foreignCompany();
 
             //  If we want only local companies and not foreign companies
-            }elseif( in_array('Not-Foreign', $statuses) && !in_array('Foreign', $statuses) ){
+            }elseif( in_array('Local Company', $statuses) && !in_array('Foreign Company', $statuses) ){
 
                 $companies = $companies->notForeignCompany();
 
@@ -366,7 +401,7 @@ trait CompanyTraits
              *  FILTER BY NOT IMPORTED WITH CIPA  *
              *************************************/
 
-            if( in_array('Not-Imported', $statuses) ){
+            if( in_array('Not Imported', $statuses) ){
 
                 $companies = $companies->notImportedFromCipa();
 
@@ -376,9 +411,9 @@ trait CompanyTraits
              *  FILTER BY RECENTLY UPDATED WITH CIPA  *
              *****************************************/
 
-            if( in_array('Updated', $statuses) ){
+            if( in_array('Recently Updated', $statuses) ){
 
-                $companies = $companies->recentlyImportedFromCipa();
+                $companies = $companies->recentlyUpdatedWithCipa();
 
             }
 
@@ -392,22 +427,22 @@ trait CompanyTraits
 
             }
 
+
             /*****************************************
              *  FILTER BY COMPLIANT / NOT COMPLIANT  *
              *****************************************/
 
             //  If we want only compliant companies and not non-compliant companies
-            if( in_array('Compliant', $statuses) && !in_array('Not-Compliant', $statuses) ){
+            if( in_array('Compliant', $statuses) && !in_array('Not Compliant', $statuses) ){
 
                 $companies = $companies->compliant();
 
             //  If we want only non-compliant companies and not compliant companies
-            }elseif( in_array('Not-Compliant', $statuses) && !in_array('Compliant', $statuses) ){
+            }elseif( in_array('Not Compliant', $statuses) && !in_array('Compliant', $statuses) ){
 
                 $companies = $companies->notCompliant();
 
             }
-
         }
 
         //  Return the companies
@@ -470,7 +505,7 @@ trait CompanyTraits
     /**
      *  This method updates a single company with the latest CIPA updates
      */
-    public function requestCipaUpdate()
+    public function requestCipaUpdate($return = true)
     {
         try {
 
@@ -501,6 +536,14 @@ trait CompanyTraits
                     'details' => $cipaCompany,
                     'cipa_updated_at' => \Carbon\Carbon::now()
                 ]);
+
+                //  If we should return an instance
+                if( $return ){
+
+                    //  Return a fresh instance
+                    return $this->fresh();
+
+                }
 
             }
 

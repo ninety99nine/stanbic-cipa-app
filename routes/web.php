@@ -27,6 +27,23 @@ Route::get('/', function () {
     ]);
 });
 
+//  Companies Resource Routes
+Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', 'CompanyController@getCompanies')->name('companies');
+    Route::post('/', 'CompanyController@createCompany')->name('company-create');
+
+    //  Single company resources    /companies/{company_id}   name => company-*
+    Route::prefix('/{company_id}')->name('company-')->group(function () {
+
+        Route::get('/', 'CompanyController@getCompany')->name('show')->where('company_id', '[0-9]+');
+        Route::put('/', 'CompanyController@updateCompany')->name('update')->where('company_id', '[0-9]+');
+        Route::delete('/', 'CompanyController@deleteCompany')->name('delete')->where('company_id', '[0-9]+');
+
+    });
+
+});
+
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function (Request $request) {
 
     $total = \App\Models\Company::count();

@@ -7,7 +7,7 @@
         </template>
 
         <div class="py-12 px-20">
-            <companies :companies="companies" :progress_totals="progress_totals" />
+            <slot></slot>
         </div>
 
     </app-layout>
@@ -15,32 +15,10 @@
 
 <script>
     import AppLayout from '@/Layouts/AppLayout'
-    import Companies from '@/Pages/Companies/Main'
 
     export default {
-
-        props: {
-            user: {
-                type: Object,
-                default: null
-            },
-            companies: {
-                type: Array,
-                default: function(){
-                    return []
-                }
-            },
-            progress_totals: {
-                type: Array,
-                default: function(){
-                    return []
-                }
-            },
-        },
-
         components: {
-            AppLayout,
-            Companies,
+            AppLayout
         },
     }
 </script>

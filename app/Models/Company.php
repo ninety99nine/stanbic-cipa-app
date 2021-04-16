@@ -37,7 +37,7 @@ class Company extends Model
      */
     protected $fillable = [
         'uin', 'name', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
-        'return_month', 'details', 'cipa_updated_at'
+        'annual_return_filing_month', 'details', 'cipa_updated_at'
     ];
 
     /*
@@ -56,6 +56,7 @@ class Company extends Model
     public function scopeCompanyStatus($query, $status)
     {
         if( is_array($status) ){
+
             return $query->whereIn('company_status', $status);
         }else{
             return $query->where('company_status', $status);
@@ -102,9 +103,9 @@ class Company extends Model
      *  Scope:
      *  Returns companies that match the given return month
      */
-    public function scopeReturnMonth($query)
+    public function scopeAnnualReturnFilingMonth($query)
     {
-        return $query->where('return_month', $query);
+        return $query->where('annual_return_filing_month', $query);
     }
 
     /*
@@ -196,7 +197,7 @@ class Company extends Model
      */
     public function scopeNotCompliant($query)
     {
-        $query->importedFromCipa()->whereNot('company_status', 'Registered');
+        $query->importedFromCipa()->where('company_status', '!=','Registered');
     }
 
     /** ATTRIBUTES
@@ -211,12 +212,16 @@ class Company extends Model
     /**
      *  Company compliance return month
      */
-    public function getReturnMonthAttribute($value)
+    public function getAnnualReturnFilingMonthAttribute($value)
     {
-        $date = Carbon::createFromFormat('d/n/Y', '01/'.$value.'/2020');
-
-        $long_name = $date->format('F');
-        $short_name = $date->format('M');
+        if($value){
+            $date = Carbon::createFromFormat('d/n/Y', '01/'.$value.'/2020');
+            $long_name = $date->format('F');
+            $short_name = $date->format('M');
+        }else{
+            $long_name = null;
+            $short_name = null;
+        }
 
         return [
             'number' => $value,          //   1 - 12
@@ -327,7 +332,7 @@ class Company extends Model
             if( $diffInDays ){
                 return $diffInDays .' '. ($diffInDays == 1 ? 'day' : 'days' ). ' ago';
             }elseif( $diffInHours ){
-                return $diffInHours .' '. ($diffInHours == 1 ? 'hour' : 'hours' ). ' ago';
+                return $diffInHours .' '. ($diffInHours == 1 ? 'hr' : 'hrs' ). ' ago';
             }elseif( $diffInMinutes ){
                 return $diffInMinutes .' '. ($diffInMinutes == 1 ? 'min' : 'mins' ). ' ago';
             }elseif( $diffInSeconds ){

@@ -22,7 +22,7 @@ class CreateCompaniesTable extends Migration
             $table->boolean('foreign_company')->default(false);
             $table->string('company_type')->nullable();
             $table->string('company_sub_type')->nullable();
-            $table->unsignedTinyInteger('return_month')->nullable();
+            $table->unsignedTinyInteger('annual_return_filing_month')->nullable();
             $table->json('details')->nullable();
             $table->timestamp('cipa_updated_at')->nullable();
             $table->timestamps();

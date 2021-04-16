@@ -34,7 +34,7 @@ trait CommonTraits
         }
     }
 
-    public function collectionResponse($data = [], $builder = null, $paginate = true, $convert_to_api_format = true)
+    public function collectionResponse($data = [], $builder = null, $paginate = true)
     {
         try {
 
@@ -44,39 +44,20 @@ trait CommonTraits
             //  If we should paginate the builder
             if( $paginate === true ){
 
-                //  Paginate builder
-                $modified_builder = $builder->paginate($limit);
+                //  Return PAGINATE
+                return $builder->paginate($limit);
 
             //  If we should not paginate the builder
             }elseif( $paginate === false ){
 
-                //  Get builder
-                $modified_builder = $builder->get();
+                //  Return GET
+                return $builder->get();
 
             //  If we should do nothing
             }elseif( $paginate === null ){
 
-                //  Return builder
+                //  Return BUILDER
                 return $builder;
-
-            }
-
-            //  If we should convert the builder to an API Readable Format
-            if( $convert_to_api_format === true ){
-
-                //  Get the model class name e.g "App\User"
-                $class = get_class($this);
-
-                //  Initialize a new model object e.g (new App\User)
-                $model = (new $class);
-
-                //  Convert to API Readable Format -
-                return $model->convertToApiFormat($modified_builder);
-
-            }else{
-
-                //  Return builder
-                return $modified_builder;
 
             }
 
