@@ -1,5 +1,5 @@
 <template>
-    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="60" height="60" :style="style">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="46" height="54" :style="style">
         <defs>
             <linearGradient x1="19.5842026%" y1="4.6136695%" x2="80.0861375%" y2="75.9797616%" id="linearGradient-1">
                 <stop stop-color="#005CA4" offset="2%"></stop>

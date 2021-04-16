@@ -6,16 +6,8 @@
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-sm">
-
-                    response: {{ response }}
-
-                    <welcome />
-
-                </div>
-            </div>
+        <div class="py-12 px-20">
+            <companies :companies="companies" :progress_totals="progress_totals" />
         </div>
 
     </app-layout>
@@ -23,7 +15,7 @@
 
 <script>
     import AppLayout from '@/Layouts/AppLayout'
-    import Welcome from '@/Jetstream/Welcome'
+    import Companies from '@/Pages/Companies/Main'
 
     export default {
 
@@ -32,15 +24,23 @@
                 type: Object,
                 default: null
             },
-            response: {
-                type: Object,
-                default: null
-            }
+            companies: {
+                type: Array,
+                default: function(){
+                    return []
+                }
+            },
+            progress_totals: {
+                type: Array,
+                default: function(){
+                    return []
+                }
+            },
         },
 
         components: {
             AppLayout,
-            Welcome,
+            Companies,
         },
     }
 </script>
