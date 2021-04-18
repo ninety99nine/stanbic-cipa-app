@@ -25,7 +25,8 @@ class Company extends JsonResource
             'foreign_company' => $this->foreign_company,
             'company_type' => $this->company_type,
             'company_sub_type' => $this->company_sub_type,
-            'return_month' => $this->return_month,
+            'annual_return_filing_month' => $this->annual_return_filing_month,
+            'incorporation_date' => $this->incorporation_date,
             'details' => $this->details,
             'cipa_updated_at' => $this->cipa_updated_at,
 

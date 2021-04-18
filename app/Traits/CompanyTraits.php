@@ -309,7 +309,7 @@ trait CompanyTraits
         foreach ($statuses as $key => $status) {
 
             //  Convert " registered " to "Registered"
-            $statuses[$key] = ucwords(strtolower(trim($status)));
+            $statuses[$key] = strtolower(trim($status));
 
         }
 
@@ -320,7 +320,7 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanyStatuses = collect($statuses)->filter(function($status){
-                return in_array($status, ['Registered', 'Cancelled', 'Removed']);
+                return in_array($status, ['registered', 'cancelled', 'removed']);
             })->toArray();
 
             if( count($filterByCompanyStatuses) ){
@@ -334,7 +334,7 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanyType = collect($statuses)->filter(function($status){
-                return in_array($status, ['Private Company', 'LLC Company']);
+                return in_array($status, ['private company', 'llc company']);
             })->toArray();
 
             if( count($filterByCompanyType) ){
@@ -348,7 +348,7 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanySubType = collect($statuses)->filter(function($status){
-                return in_array($status, ['Type A', 'Type B']);
+                return in_array($status, ['type a', 'type b']);
             })->toArray();
 
             if( count($filterByCompanySubType) ){
@@ -361,11 +361,11 @@ trait CompanyTraits
              *  FILTER BY EXEMPT           *
              *******************************/
 
-            if( in_array('Exempt', $statuses) ){
+            if( in_array('exempt', $statuses) ){
 
                 $companies = $companies->exempt();
 
-            }elseif( in_array('Not Exempt', $statuses) ){
+            }elseif( in_array('not exempt', $statuses) ){
 
                 $companies = $companies->notExempt();
 
@@ -376,12 +376,12 @@ trait CompanyTraits
              *******************************/
 
             //  If we want only foreign companies and not local companies
-            if( in_array('Foreign Company', $statuses) && !in_array('Local Company', $statuses) ){
+            if( in_array('foreign company', $statuses) && !in_array('local company', $statuses) ){
 
                 $companies = $companies->foreignCompany();
 
             //  If we want only local companies and not foreign companies
-            }elseif( in_array('Local Company', $statuses) && !in_array('Foreign Company', $statuses) ){
+            }elseif( in_array('local company', $statuses) && !in_array('foreign company', $statuses) ){
 
                 $companies = $companies->notForeignCompany();
 
@@ -391,7 +391,7 @@ trait CompanyTraits
              *  FILTER BY IMPORTED WITH CIPA  *
              *********************************/
 
-            if( in_array('Imported', $statuses) ){
+            if( in_array('imported', $statuses) ){
 
                 $companies = $companies->ImportedFromCipa();
 
@@ -401,7 +401,7 @@ trait CompanyTraits
              *  FILTER BY NOT IMPORTED WITH CIPA  *
              *************************************/
 
-            if( in_array('Not Imported', $statuses) ){
+            if( in_array('not imported', $statuses) ){
 
                 $companies = $companies->notImportedFromCipa();
 
@@ -411,7 +411,7 @@ trait CompanyTraits
              *  FILTER BY RECENTLY UPDATED WITH CIPA  *
              *****************************************/
 
-            if( in_array('Recently Updated', $statuses) ){
+            if( in_array('recently updated', $statuses) ){
 
                 $companies = $companies->recentlyUpdatedWithCipa();
 
@@ -421,7 +421,7 @@ trait CompanyTraits
              *  FILTER BY OUTDATED WITH CIPA  *
              *********************************/
 
-            if( in_array('Outdated', $statuses) ){
+            if( in_array('outdated', $statuses) ){
 
                 $companies = $companies->outdatedWithCipa();
 
@@ -433,14 +433,102 @@ trait CompanyTraits
              *****************************************/
 
             //  If we want only compliant companies and not non-compliant companies
-            if( in_array('Compliant', $statuses) && !in_array('Not Compliant', $statuses) ){
+            if( in_array('compliant', $statuses) && !in_array('not compliant', $statuses) ){
 
                 $companies = $companies->compliant();
 
             //  If we want only non-compliant companies and not compliant companies
-            }elseif( in_array('Not Compliant', $statuses) && !in_array('Compliant', $statuses) ){
+            }elseif( in_array('not compliant', $statuses) && !in_array('compliant', $statuses) ){
 
                 $companies = $companies->notCompliant();
+
+            }
+
+            /**********************************
+             *  FILTER BY DISSOLUTION DATE    *
+             *********************************/
+
+            if( in_array('dissolution date', $statuses) && isset($data['dissolution_date']) && !empty($data['dissolution_date'])){
+
+                $start_date = null;
+                $end_date = null;
+
+                if( isset($data['dissolution_date']['start_date']) && !empty($data['dissolution_date']['start_date']) ){
+
+                    $start_date = \Carbon\Carbon::parse($data['dissolution_date']['start_date'])->format('Y-m-d H:i:s');
+                }
+
+                if( isset($data['dissolution_date']['end_date']) && !empty($data['dissolution_date']['end_date']) ){
+                    $end_date = \Carbon\Carbon::parse($data['dissolution_date']['end_date'])->format('Y-m-d H:i:s');
+                }
+
+                $companies = $companies->dissolutionDate($start_date, $end_date);
+
+            }
+
+            /************************************
+             *  FILTER BY INCORPORATION DATE    *
+             ***********************************/
+
+            if( in_array('incorporation date', $statuses) && isset($data['incorporation_date']) && !empty($data['incorporation_date'])){
+
+                $start_date = null;
+                $end_date = null;
+
+                if( isset($data['incorporation_date']['start_date']) && !empty($data['incorporation_date']['start_date']) ){
+
+                    $start_date = \Carbon\Carbon::parse($data['incorporation_date']['start_date'])->format('Y-m-d H:i:s');
+                }
+
+                if( isset($data['incorporation_date']['end_date']) && !empty($data['incorporation_date']['end_date']) ){
+                    $end_date = \Carbon\Carbon::parse($data['incorporation_date']['end_date'])->format('Y-m-d H:i:s');
+                }
+
+                $companies = $companies->incorporationDate($start_date, $end_date);
+
+            }
+
+            /************************************
+             *  FILTER BY RE-REGISTRATION DATE  *
+             ***********************************/
+
+            if( in_array('re-registration date', $statuses) && isset($data['re_registration_date']) && !empty($data['re_registration_date'])){
+
+                $start_date = null;
+                $end_date = null;
+
+                if( isset($data['re_registration_date']['start_date']) && !empty($data['re_registration_date']['start_date']) ){
+
+                    $start_date = \Carbon\Carbon::parse($data['re_registration_date']['start_date'])->format('Y-m-d H:i:s');
+                }
+
+                if( isset($data['re_registration_date']['end_date']) && !empty($data['re_registration_date']['end_date']) ){
+                    $end_date = \Carbon\Carbon::parse($data['re_registration_date']['end_date'])->format('Y-m-d H:i:s');
+                }
+
+                $companies = $companies->reRegistrationDate($start_date, $end_date);
+
+            }
+
+            /************************************
+             *  FILTER BY RE-REGISTRATION DATE  *
+             ***********************************/
+
+            if( in_array('a-r last filed date', $statuses) && isset($data['annual_return_last_filed_date']) && !empty($data['annual_return_last_filed_date'])){
+
+                $start_date = null;
+                $end_date = null;
+
+                if( isset($data['annual_return_last_filed_date']['start_date']) && !empty($data['annual_return_last_filed_date']['start_date']) ){
+
+                    $start_date = \Carbon\Carbon::parse($data['annual_return_last_filed_date']['start_date'])->format('Y-m-d H:i:s');
+                }
+
+                if( isset($data['annual_return_last_filed_date']['end_date']) && !empty($data['annual_return_last_filed_date']['end_date']) ){
+                    $end_date = \Carbon\Carbon::parse($data['annual_return_last_filed_date']['end_date'])->format('Y-m-d H:i:s');
+                }
+
+                $companies = $companies->annualReturnLastFiledDate($start_date, $end_date);
 
             }
         }
@@ -532,7 +620,8 @@ trait CompanyTraits
                     'foreign_company' => $cipaCompany->ForeignCompany != new \stdClass() ? $cipaCompany->ForeignCompany->Value : null,
                     'company_type' => $cipaCompany->CompanyType != new \stdClass() ? $cipaCompany->CompanyType->Value : null,
                     'company_sub_type' => $cipaCompany->CompanySubType != new \stdClass() ? $cipaCompany->CompanySubType->Value : null,
-                    'return_month' => $cipaCompany->AnnualReturnFilingMonth != new \stdClass() ? $cipaCompany->AnnualReturnFilingMonth->Value : null,
+                    'annual_return_filing_month' => $cipaCompany->AnnualReturnFilingMonth != new \stdClass() ? $cipaCompany->AnnualReturnFilingMonth->Value : null,
+                    'incorporation_date' => $cipaCompany->IncorporationDate != new \stdClass() ? \Carbon\Carbon::parse($cipaCompany->IncorporationDate)->format('Y-m-d H:i:s') : null,
                     'details' => $cipaCompany,
                     'cipa_updated_at' => \Carbon\Carbon::now()
                 ]);

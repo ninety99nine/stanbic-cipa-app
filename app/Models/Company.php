@@ -28,6 +28,10 @@ class Company extends Model
      */
     protected $dates = [
         'cipa_updated_at',
+        'dissolution_date',
+        'incorporation_date',
+        're_registration_date',
+        'annual_return_last_filed_date',
     ];
 
     /**
@@ -36,8 +40,9 @@ class Company extends Model
      * @var array
      */
     protected $fillable = [
-        'uin', 'name', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
-        'annual_return_filing_month', 'details', 'cipa_updated_at'
+        'uin', 'name', 'info', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
+        'incorporation_date', 're_registration_date', 'old_company_number', 'dissolution_date', 'own_constitution_yn',
+        'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at'
     ];
 
     /*
@@ -97,15 +102,6 @@ class Company extends Model
     public function scopeNotForeignCompany($query)
     {
         return $query->where('foreign_company', '0');
-    }
-
-    /*
-     *  Scope:
-     *  Returns companies that match the given return month
-     */
-    public function scopeAnnualReturnFilingMonth($query)
-    {
-        return $query->where('annual_return_filing_month', $query);
     }
 
     /*
@@ -200,6 +196,92 @@ class Company extends Model
         $query->importedFromCipa()->where('company_status', '!=','Registered');
     }
 
+    /*
+     *  Scope:
+     *  Returns companies that match the given dissolution date
+     */
+    public function scopeDissolutionDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+
+            $query = $query->whereDate('dissolution_date', '>=', $start_date);
+        }
+
+        if( $end_date ){
+            $query = $query->whereDate('dissolution_date', '<=', $end_date);
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that match the given incorporation date
+     */
+    public function scopeIncorporationDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+
+            $query = $query->whereDate('incorporation_date', '>=', $start_date);
+        }
+
+        if( $end_date ){
+            $query = $query->whereDate('incorporation_date', '<=', $end_date);
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that match the given re-registration date
+     */
+    public function scopeReRegistrationDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+
+            $query = $query->whereDate('re_registration_date', '>=', $start_date);
+        }
+
+        if( $end_date ){
+            $query = $query->whereDate('re_registration_date', '<=', $end_date);
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that match the given annual return last filed date
+     */
+    public function scopeAnnualReturnLastFiledDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+
+            $query = $query->whereDate('annual_return_last_filed_date', '>=', $start_date);
+        }
+
+        if( $end_date ){
+            $query = $query->whereDate('annual_return_last_filed_date', '<=', $end_date);
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that match the updated with Cipa date
+     */
+    public function scopeUpdatedWithCipaDate($query, $date, $type = 'after')
+    {
+        if( $date && $type ){
+            $operation = ($type == 'after') ? '>' : '<';
+            return $query->where('cipa_updated_at', $operation, $date);
+        }else{
+            return $query;
+        }
+    }
+
     /** ATTRIBUTES
      *
      *  Note that the "resource_type" is defined within CommonTraits.
@@ -210,7 +292,7 @@ class Company extends Model
     ];
 
     /**
-     *  Company compliance return month
+     *  Company return month
      */
     public function getAnnualReturnFilingMonthAttribute($value)
     {
@@ -231,7 +313,7 @@ class Company extends Model
     }
 
     /**
-     *  Company compliance exempt status
+     *  Company exempt status
      */
     public function getExemptAttribute($value)
     {
@@ -244,7 +326,7 @@ class Company extends Model
     }
 
     /**
-     *  Company compliance foreign company status
+     *  Company foreign company status
      */
     public function getForeignCompanyAttribute($value)
     {
@@ -256,6 +338,50 @@ class Company extends Model
         ];
     }
 
+    /**
+     *  Company own constitution status
+     */
+    public function getOwnConstitutionYnAttribute($value)
+    {
+        $status = $value;
+
+        return [
+            'status' => $status,
+            'name' => $status ? 'Yes' : 'No'
+        ];
+    }
+
+    /**
+     *  Company incorporation date
+     */
+    public function getIncorporationDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
+
+    /**
+     *  Company re-registration date
+     */
+    public function getReRegistrationDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
+
+    /**
+     *  Company dissolution date
+     */
+    public function getDissolutionDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
+
+    /**
+     *  Company annual return last filed date
+     */
+    public function getAnnualReturnLastFiledDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
 
     /**
      *  Company registration status
@@ -383,6 +509,11 @@ class Company extends Model
     public function setForeignCompanyAttribute($value)
     {
         $this->attributes['foreign_company'] = strtolower($value) == 'true' ? 1 : 0;
+    }
+
+    public function setOwnConstitutionYnAttribute($value)
+    {
+        $this->attributes['own_constitution_yn'] = strtolower($value) == 'true' ? 1 : 0;
     }
 
     public function setCompanyTypeAttribute($value)

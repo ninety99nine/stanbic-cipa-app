@@ -26,6 +26,7 @@
         "vue-loader": "^16.1.2"
     },
     "dependencies": {
-        "element-plus": "^1.0.2-beta.40"
+        "element-plus": "^1.0.2-beta.40",
+        "moment": "^2.29.1"
     }
 }
