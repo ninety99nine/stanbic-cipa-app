@@ -60,9 +60,11 @@
             <div class="flex justify-end items-start">
 
                 <div>
-                    <el-popover placement="top" content="Add one or more clients" :width="200" trigger="hover">
+                    <el-popover placement="top" content="Add one or more clients" :width="200"
+                                trigger="hover" :key="addClientPopoverKey">
                         <template #reference>
-                            <jet-button :height="32" icon="el-icon-plus" class="mr-2" :disabled="isBulkUpdating">
+                            <jet-button :height="32" icon="el-icon-plus" class="mr-2" :disabled="isBulkUpdating || addClient"
+                                        @click="openAddClient">
                                 <span>Add Client</span>
                             </jet-button>
                         </template>
@@ -112,13 +114,37 @@
                                 <el-dropdown-item icon="el-icon-refresh-right" @click="fetchCompanies()">Refresh</el-dropdown-item>
                                 <el-dropdown-item divided>Sort By</el-dropdown-item>
                                 <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
-                                <el-dropdown-item icon="el-icon-download" divided>Export Data</el-dropdown-item>
+                                <el-dropdown-item icon="el-icon-download" divided>
+                                    <a :href="exportCompaniesUrl">Export to Excel</a>
+                                </el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
                     </el-dropdown>
                 </div>
 
             </div>
+
+        </div>
+
+        <div v-if="addClient" class="bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 py-5">
+
+            <div class="flex justify-between">
+                <h4 class="font-bold text-gray-500">Add Client</h4>
+                <jet-button @click="addClient = false">
+                    <i class="el-icon-close text-white"></i>
+                </jet-button>
+            </div>
+
+            <form @submit.prevent="submit" class="my-5">
+
+                <input type="file" :disabled="form.processing" @input="form.excelFile = $event.target.files[0]" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="hover:bg-gray-100 active:bg-gray-200 text-blue-900 text-xs border border-dashed cursor-pointer p-2 mr-2" />
+
+                <button type="submit" :disabled="form.processing" class="inline-flex items-center px-4 py-2 bg-blue-800 border border-transparent rounded-sm font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:shadow-outline-blue disabled:opacity-25 transition">
+                    <i v-if="form.processing" class="el-icon-loading mr-1"></i>
+                    <span>Submit</span>
+                </button>
+
+            </form>
 
         </div>
 
@@ -138,43 +164,38 @@
                     <div v-if="filterByDissolutionDate">
                         <span class="block py-2 mb-2">Dissolution Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.dissolution_date.start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.dissolution_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.dissolution_date.end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.dissolution_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByIncorporationDate">
                         <span class="block py-2 mb-2">Incorporation Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.incorporation_date.start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.incorporation_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.incorporation_date.end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.incorporation_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByReRegistrationDate">
                         <span class="block py-2 mb-2">Re-registration Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.re_registration_date.start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.re_registration_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.re_registration_date.end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.re_registration_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByARLastFiledDate">
                         <span class="block py-2 mb-2">Annual Return Last Filed Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_date.start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_date.end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
                         </div>
                     </div>
-
-
-
-
-
 
                 </div>
 
@@ -206,8 +227,6 @@
             </div>
 
         </div>
-
-
 
         <div v-if="isBulkUpdating" class="overflow-auto mb-2">
 
@@ -244,7 +263,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('name')" min-width="200" prop="name" label="Name" fixed>
+                <el-table-column v-if="selectedColumns.includes('name')" min-width="200" prop="name" label="Name" sortable fixed>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -257,7 +276,7 @@
                         <span>{{ scope.row.uin }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('company status')" min-width="100" prop="company_status" label="Status">
+                <el-table-column v-if="selectedColumns.includes('company status')" min-width="100" prop="company_status" label="Status" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -268,7 +287,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('exempt')" min-width="80" prop="exempt" label="Exempt" align="center">
+                <el-table-column v-if="selectedColumns.includes('exempt')" min-width="100" prop="exempt" label="Exempt" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -276,7 +295,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('foreign company')" min-width="150" prop="foreign_company" label="Foreign company" align="center">
+                <el-table-column v-if="selectedColumns.includes('foreign company')" min-width="160" prop="foreign_company" label="Foreign company" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -284,7 +303,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('old company number')" min-width="150" prop="old_company_number" label="Old company #">
+                <el-table-column v-if="selectedColumns.includes('old company number')" min-width="160" prop="old_company_number" label="Old company #" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -292,7 +311,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('incorporation date')" min-width="150" prop="incorporation_date" label="Incorporation date">
+                <el-table-column v-if="selectedColumns.includes('incorporation date')" min-width="170" prop="incorporation_date" label="Incorporation date" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -300,7 +319,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('re-registration date')" min-width="160" prop="re_registration_date" label="Re-registration date">
+                <el-table-column v-if="selectedColumns.includes('re-registration date')" min-width="180" prop="re_registration_date" label="Re-registration date" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -308,7 +327,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('dissolution date')" min-width="150" prop="dissolution_date" label="Dissolution date">
+                <el-table-column v-if="selectedColumns.includes('dissolution date')" min-width="160" prop="dissolution_date" label="Dissolution date" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -316,7 +335,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('own constitution')" min-width="150" prop="own_constitution_yn" label="Own constitution">
+                <el-table-column v-if="selectedColumns.includes('own constitution')" min-width="160" prop="own_constitution_yn" label="Own constitution" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -332,7 +351,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('company type')" min-width="150" prop="company_type" label="Company type">
+                <el-table-column v-if="selectedColumns.includes('company type')" min-width="150" prop="company_type" label="Company type" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -340,7 +359,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('company sub type')" min-width="150" prop="company_sub_type" label="Company sub-type">
+                <el-table-column v-if="selectedColumns.includes('company sub type')" min-width="170" prop="company_sub_type" label="Company sub-type" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -348,7 +367,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('annual return filing month')" min-width="120" prop="annual_return_filing_month" label="Return month" align="center">
+                <el-table-column v-if="selectedColumns.includes('annual return filing month')" min-width="140" prop="annual_return_filing_month" label="Return month" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -360,7 +379,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('annual return last filed date')" min-width="140" prop="annual_return_last_filed_date" label="A-R last filed date" align="center">
+                <el-table-column v-if="selectedColumns.includes('annual return last filed date')" min-width="170" prop="annual_return_last_filed_date" label="A-R last filed date" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -368,7 +387,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('last updated')" width="100" prop="last_updated" label="Updated" align="center">
+                <el-table-column v-if="selectedColumns.includes('last updated')" width="110" prop="last_updated" label="Updated" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -393,6 +412,12 @@
                     </template>
                 </el-table-column>
             </el-table>
+            <div class="overflow-auto py-4">
+                <el-pagination class="float-right" layout="sizes, prev, pager, next" :page-size="companies.per_page" :page-sizes="[5, 10, 15, 20]"
+                            :total="companies.total" :page-count="companies.total" :current-page="companies.current_page"
+                            :pager-count="11" background @size-change="changePageSize" @current-change="changePage">
+                </el-pagination>
+            </div>
         </div>
 
     </div>
@@ -406,9 +431,23 @@
     import JetButton from '@/Jetstream/Button'
     import { Inertia } from '@inertiajs/inertia'
 
-import { round } from 'lodash'
+    import { useForm } from '@inertiajs/inertia-vue3'
+    import { forEach, round } from 'lodash'
 
     export default {
+        // Inertia Form functionality
+        setup () {
+            const form = useForm({
+                excelFile: null,
+            })
+
+            function submit() {
+                form.post(route('companies-import'));
+            }
+
+            return { form, submit }
+        },
+
         // Use Dashboard Layout
         layout: Dashboard,
         props: {
@@ -421,10 +460,8 @@ import { round } from 'lodash'
                 default: null
             },
             progress_totals: {
-                type: Array,
-                default: function(){
-                    return []
-                }
+                type: Object,
+                default: null
             },
         },
         components:{ JetButton },
@@ -500,6 +537,7 @@ import { round } from 'lodash'
                         status: true
                     }
                 ],
+                addClient: false,
                 showSelectedColumns: false,
                 selectedFilters: [],
                 selectSearch: '1',
@@ -622,23 +660,18 @@ import { round } from 'lodash'
                         ]
                     }
                 ],
-                filterDates:{
-                    dissolution_date: {
-                        start_date: null,
-                        end_date: null
-                    },
-                    incorporation_date: {
-                        start_date: null,
-                        end_date: null
-                    },
-                    re_registration_date: {
-                        start_date: null,
-                        end_date: null
-                    },
-                    annual_return_last_filed_date: {
-                        start_date: null,
-                        end_date: null
-                    },
+                filterDates: {
+                    dissolution_start_date: null,
+                    dissolution_end_date: null,
+
+                    incorporation_start_date: null,
+                    incorporation_end_date: null,
+
+                    re_registration_start_date: null,
+                    re_registration_end_date: null,
+
+                    annual_return_last_filed_start_date: null,
+                    annual_return_last_filed_end_date: null
                 },
                 minizeFilterDates: false,
                 tableData: [],
@@ -648,7 +681,10 @@ import { round } from 'lodash'
                 updatingIndexes: [],
                 stopBulkUpdateStatus: false,
                 bulkUpdateProgress: null,
-                updateCompaniesPopoverKey: 1
+                addClientPopoverKey: 1,
+                updateCompaniesPopoverKey: 1,
+                currentPage: this.companies.current_page,
+                perPage: this.companies.per_page
             }
         },
         computed: {
@@ -689,9 +725,100 @@ import { round } from 'lodash'
                 return this.selectedFilters.filter((selectedFilter) => {
                     return ['A-R Last Filed Date'].includes(selectedFilter);
                 }).length ? true : false;
+            },
+            companiesUrlQueryParamsAsObject(){
+
+                var url_append = {};
+
+                //  If we have a search word
+                if( this.searchWord ){
+
+                    url_append.search = this.searchWord;
+
+                }
+
+                //  If we have selected filter
+                if( this.selectedFilters.length ){
+
+                    url_append.status = this.selectedFilters.join(',');
+
+                }
+
+                //  Set the filter dissolution start date (If required)
+                if( this.filterByDissolutionDate && this.filterDates.dissolution_start_date ){
+                    url_append.dissolution_start_date = moment(this.filterDates.dissolution_start_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter dissolution end date (If required)
+                if( this.filterByDissolutionDate && this.filterDates.dissolution_end_date ){
+                    url_append.dissolution_end_date = moment(this.filterDates.dissolution_end_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter incorporation start date (If required)
+                if( this.filterByIncorporationDate && this.filterDates.incorporation_start_date ){
+                    url_append.incorporation_start_date = moment(this.filterDates.incorporation_start_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter incorporation end date (If required)
+                if( this.filterByIncorporationDate && this.filterDates.incorporation_end_date ){
+                    url_append.incorporation_end_date = moment(this.filterDates.incorporation_end_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter re_registration start date (If required)
+                if( this.filterByReRegistrationDate && this.filterDates.re_registration_start_date ){
+                    url_append.re_registration_start_date = moment(this.filterDates.re_registration_start_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter re_registration end date (If required)
+                if( this.filterByReRegistrationDate && this.filterDates.re_registration_end_date ){
+                    url_append.re_registration_end_date = moment(this.filterDates.re_registration_end_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter annual_return_last_filed_ start date (If required)
+                if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_start_date ){
+                    url_append.annual_return_last_filed_start_date = moment(this.filterDates.annual_return_last_filed_start_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter annual_return_last_filed_ end date (If required)
+                if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_end_date ){
+                    url_append.annual_return_last_filed_end_date = moment(this.filterDates.annual_return_last_filed_end_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                url_append.per_page = this.perPage;
+
+                url_append.page = this.currentPage;
+
+                return url_append;
+            },
+            companiesUrlQueryParamsAsString(){
+
+                if( _.isEmpty( this.companiesUrlQueryParamsAsObject ) ){
+
+                    return '';
+
+                }else{
+
+                    var string = '?';
+                    var field_names = Object.keys(this.companiesUrlQueryParamsAsObject);
+                    var field_values = Object.values(this.companiesUrlQueryParamsAsObject);
+
+                    for (let index = 0; index < field_names.length; index++) {
+
+                        string += field_names[index]+'='+field_values[index];
+
+                        if( (index + 1) != field_names.length ){
+                            string += ',';
+                        }
+
+                    }
+
+                    return string
+
+                }
+            },
+            exportCompaniesUrl(){
+                return route('companies-export') + this.companiesUrlQueryParamsAsString;
             }
-
-
         },
         methods: {
             handleSelectionChange(val) {
@@ -705,52 +832,28 @@ import { round } from 'lodash'
             },
             fetchCompanies(){
 
-                var statuses = this.selectedFilters.join(',');
+                var options = { only: ['companies', 'progress_totals'], preserveState: true, preserveScroll: true, replace: true };
 
-                var data = { search: this.searchWord, status: statuses };
-
-                //  Set the filter dissolution date (If required)
-                if( this.filterByDissolutionDate && (this.filterDates.dissolution_date.start_date || this.filterDates.dissolution_date.end_date) ){
-                    data.dissolution_date = {
-                        start_date: this.filterDates.dissolution_date.start_date ? moment(this.filterDates.dissolution_date.start_date).format('YYYY-MM-DD 00:00:00') : null,
-                        end_date: this.filterDates.dissolution_date.end_date ? moment(this.filterDates.dissolution_date.end_date).format('YYYY-MM-DD 00:00:00') : null,
-                    };
-                }
-
-                //  Set the filter incorporation date (If required)
-                if( this.filterByIncorporationDate && (this.filterDates.incorporation_date.start_date || this.filterDates.incorporation_date.end_date) ){
-                    data.incorporation_date = {
-                        start_date: this.filterDates.incorporation_date.start_date ? moment(this.filterDates.incorporation_date.start_date).format('YYYY-MM-DD 00:00:00') : null,
-                        end_date: this.filterDates.incorporation_date.end_date ? moment(this.filterDates.incorporation_date.end_date).format('YYYY-MM-DD 00:00:00') : null,
-                    };
-                }
-
-                //  Set the filter re-registration date (If required)
-                if( this.filterByReRegistrationDate && (this.filterDates.re_registration_date.start_date || this.filterDates.re_registration_date.end_date) ){
-                    data.re_registration_date = {
-                        start_date: this.filterDates.re_registration_date.start_date ? moment(this.filterDates.re_registration_date.start_date).format('YYYY-MM-DD 00:00:00') : null,
-                        end_date: this.filterDates.re_registration_date.end_date ? moment(this.filterDates.re_registration_date.end_date).format('YYYY-MM-DD 00:00:00') : null,
-                    };
-                }
-
-                //  Set the filter annual return last filed date (If required)
-                if( this.filterByARLastFiledDate && (this.filterDates.annual_return_last_filed_date.start_date || this.filterDates.annual_return_last_filed_date.end_date) ){
-                    data.annual_return_last_filed_date = {
-                        start_date: this.filterDates.annual_return_last_filed_date.start_date ? moment(this.filterDates.annual_return_last_filed_date.start_date).format('YYYY-MM-DD 00:00:00') : null,
-                        end_date: this.filterDates.annual_return_last_filed_date.end_date ? moment(this.filterDates.annual_return_last_filed_date.end_date).format('YYYY-MM-DD 00:00:00') : null,
-                    };
-                }
-
-
-
-                var options = { only: ['companies'], preserveState: true, preserveScroll: true, replace: true };
-
-                var response = this.$inertia.get('/companies', data , options);
+                var response = this.$inertia.get(route('companies'), this.companiesUrlQueryParamsAsObject, options);
 
                 Inertia.on('success', (event) => {
                     this.setTableData(event.detail.page.props.companies.data);
                 })
 
+            },
+            openAddClient(){
+                ++this.addClientPopoverKey;
+                this.addClient = true;
+            },
+            changePage(val) {
+                this.currentPage = val;
+
+                this.fetchCompanies();
+            },
+            changePageSize(val) {
+                this.perPage = val;
+
+                this.fetchCompanies();
             },
             async bulkRequestCompanyUpdate(waitForEachCall = true){
 
@@ -882,9 +985,53 @@ import { round } from 'lodash'
                         }
                     });
                 }
+            },
+            setSearchFromUrl(){
+
+                if( route().params ){
+
+                    if( route().params.search ){
+
+                        this.searchWord = route().params.search;
+                    }
+
+                }
+            },
+            setFiltersFromUrl(){
+
+                if( route().params ){
+
+                    if( route().params.status ){
+
+                        this.selectedFilters = route().params.status.split(',');
+                    }
+
+                }
+            },
+            setFilterDatesFromUrl(){
+
+                var date_names = Object.keys(this.filterDates);
+
+                date_names.forEach(date_name => {
+
+                    //  If the date name exists on the url params
+                    if( route().params[date_name] ){
+
+                        this.filterDates[date_name] = route().params[date_name];
+
+                    }
+                });
             }
         },
         created(){
+            console.log('this.companies');
+            console.log(this.companies);
+            console.log('this.companiesUrlQueryParamsAsString');
+            console.log(this.companiesUrlQueryParamsAsString);
+
+            this.setSearchFromUrl();
+            this.setFiltersFromUrl();
+            this.setFilterDatesFromUrl();
             this.setTableData(this.companies.data);
         }
     }

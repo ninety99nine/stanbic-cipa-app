@@ -45,6 +45,8 @@ class Company extends Model
         'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at'
     ];
 
+
+
     /*
      *  Scope:
      *  Returns companies that are being searched
@@ -136,7 +138,7 @@ class Company extends Model
      */
     public function scopeImportedFromCipa($query)
     {
-        return $query->whereNotNull('details');
+        return $query->whereNotNull('cipa_updated_at');
     }
 
     /*
@@ -145,34 +147,44 @@ class Company extends Model
      */
     public function scopeNotImportedFromCipa($query)
     {
-        return $query->whereNull('details');
+        return $query->whereNull('cipa_updated_at');
     }
 
     /*
      *  Scope:
      *  Returns companies that are outdated
      */
-    public function scopeOutdatedWithCipa($query, $frequency = 'days', $duration = 1)
+    public function scopeOutdatedWithCipa($query, $frequency = 'days', $duration = [])
     {
+        $duration = [
+            'hours' => isset($duration['hours']) && !empty($duration['hours']) ? $duration : 24,
+            'days' => isset($duration['days']) && !empty($duration['days']) ? $duration : 1
+        ];
+
         if( $frequency == 'hours' ){
-            $date = Carbon::now()->subHours($duration);
+            $date = Carbon::now()->subHours($duration['hours'])->format('Y-m-d H:i:s');
         }else{
-            $date = Carbon::now()->subDays($duration);
+            $date = Carbon::now()->subDays($duration['days'])->format('Y-m-d H:i:s');
         }
 
-        return $query->importedFromCipa()->where('cipa_updated_at', '<', $date)->orWhereNotNull('details');
+        return $query->whereNull('cipa_updated_at')->orWhere('cipa_updated_at', '<', $date);
     }
 
     /*
      *  Scope:
      *  Returns companies that are recently updated
      */
-    public function scopeRecentlyUpdatedWithCipa($query, $frequency = 'days', $duration = 1)
+    public function scopeRecentlyUpdatedWithCipa($query, $frequency = 'days', $duration = [])
     {
+        $duration = [
+            'hours' => isset($duration['hours']) && !empty($duration['hours']) ? $duration : 24,
+            'days' => isset($duration['days']) && !empty($duration['days']) ? $duration : 1
+        ];
+
         if( $frequency == 'hours' ){
-            $date = Carbon::now()->subHours($duration);
+            $date = Carbon::now()->subHours($duration['hours'])->format('Y-m-d H:i:s');
         }else{
-            $date = Carbon::now()->subDays($duration);
+            $date = Carbon::now()->subDays($duration['days'])->format('Y-m-d H:i:s');
         }
 
         return $query->importedFromCipa()->where('cipa_updated_at', '>', $date);
@@ -388,8 +400,11 @@ class Company extends Model
      */
     public function getIsRegisteredAttribute()
     {
+        $status = ($this->company_status == 'Registered');
+
         return [
-            'status' => ($this->company_status == 'Registered')
+            'status' => $status,
+            'name' => $status ? 'Yes' : 'No',
         ];
     }
 
@@ -398,8 +413,11 @@ class Company extends Model
      */
     public function getIsCancelledAttribute()
     {
+        $status = ($this->company_status == 'Cancelled');
+
         return [
-            'status' => ($this->company_status == 'Cancelled')
+            'status' => $status,
+            'name' => $status ? 'Yes' : 'No',
         ];
     }
 
@@ -408,8 +426,11 @@ class Company extends Model
      */
     public function getIsRemovedAttribute()
     {
+        $status = ($this->company_status == 'Removed');
+
         return [
-            'status' => ($this->company_status == 'Removed')
+            'status' => $status,
+            'name' => $status ? 'Yes' : 'No',
         ];
     }
 
@@ -433,7 +454,7 @@ class Company extends Model
      */
     public function getIsImportedFromCipaAttribute()
     {
-        $status = is_null($this->details) == false;
+        $status = is_null($this->cipa_updated_at) == false;
 
         return [
             'status' => $status,
@@ -475,7 +496,7 @@ class Company extends Model
      */
     public function getIsRecentlyUpdatedWithCipaAttribute()
     {
-        $updated_with_cipa = is_null($this->details) == false;
+        $updated_with_cipa = is_null($this->cipa_updated_at) == false;
 
         if( $updated_with_cipa ){
 
@@ -503,17 +524,17 @@ class Company extends Model
 
     public function setExemptAttribute($value)
     {
-        $this->attributes['exempt'] = strtolower($value) == 'true' ? 1 : 0;
+        $this->attributes['exempt'] = strtolower($value) == true ? 1 : 0;
     }
 
     public function setForeignCompanyAttribute($value)
     {
-        $this->attributes['foreign_company'] = strtolower($value) == 'true' ? 1 : 0;
+        $this->attributes['foreign_company'] = strtolower($value) == true ? 1 : 0;
     }
 
     public function setOwnConstitutionYnAttribute($value)
     {
-        $this->attributes['own_constitution_yn'] = strtolower($value) == 'true' ? 1 : 0;
+        $this->attributes['own_constitution_yn'] = strtolower($value) == true ? 1 : 0;
     }
 
     public function setCompanyTypeAttribute($value)

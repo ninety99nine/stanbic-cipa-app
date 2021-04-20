@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
+use App\Http\Controllers\ExcelController;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
 
 /*
@@ -33,6 +34,10 @@ Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth
     Route::get('/', 'CompanyController@getCompanies')->name('companies');
     Route::post('/', 'CompanyController@createCompany')->name('company-create');
 
+    // Route for export/download tabledata to .csv, .xls or .xlsx
+    Route::get('/export', 'CompanyController@exportCompanies')->name('companies-export');
+    Route::post('/import', 'CompanyController@importCompanies')->name('companies-import');
+
     //  Single company resources    /companies/{company_id}   name => company-*
     Route::prefix('/{company_id}')->name('company-')->group(function () {
 
@@ -43,6 +48,13 @@ Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth
     });
 
 });
+
+// Route for view/blade file.
+Route::get('importExportView', [ExcelController::class, 'importExportView'])->name('importExportView');
+// Route for export/download tabledata to .csv, .xls or .xlsx
+Route::get('exportExcel/{type}', [ExcelController::class, 'exportExcel'])->name('exportExcel');
+// Route for import excel data to database.
+Route::post('importExcel', [ExcelController::class, 'importExcel'])->name('importExcel');
 
 Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function (Request $request) {
 

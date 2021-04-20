@@ -50,12 +50,59 @@ class CompanyController extends Controller
     {
         try {
 
+            $total = Company::count();
+            $total_imported = Company::importedFromCipa()->count();
+            $total_not_imported = Company::notImportedFromCipa()->count();
+            $total_outdated = Company::outdatedWithCipa()->count();
+            $total_recently_updated = Company::recentlyUpdatedWithCipa()->count();
+
+            $progress_totals = [
+                'total' => $total,
+                'total_imported' => $total_imported,
+                'total_not_imported' => $total_not_imported,
+                'total_outdated' => $total_outdated,
+                'total_recently_updated' => $total_recently_updated,
+                'total_imported_percentage' => (int)($total_imported / $total * 100),
+                'total_recently_updated_percentage' => (int) ($total_recently_updated / $total * 100),
+            ];
+
             //  Return a list of companies
             $companies = (new Company)->getResources($request);
 
             return Inertia::render('Companies/List', [
-                'companies' => $companies
+                'companies' => $companies,
+                'progress_totals' => $progress_totals
             ]);
+
+        } catch (\Exception $e) {
+
+            throw ($e);
+
+        }
+    }
+
+    public function exportCompanies(Request $request)
+    {
+        try {
+
+            //  Export a list of companies
+            return (new Company)->exportResources($request);
+
+        } catch (\Exception $e) {
+
+            throw ($e);
+
+        }
+    }
+
+    public function importCompanies(Request $request)
+    {
+        try {
+
+            //  Import a list of companies
+            (new Company)->importResources($request);
+
+            return redirect()->route('companies');
 
         } catch (\Exception $e) {
 
@@ -84,20 +131,6 @@ class CompanyController extends Controller
 
             //  Delete the company
             return (new Company)->getResource($company_id)->deleteResource($this->user);
-
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
-
-        }
-    }
-
-    public function arrangeCompanies(Request $request)
-    {
-        try {
-
-            //  Arrange companies
-            return (new Company())->reorderCompanies($request);
 
         } catch (\Exception $e) {
 

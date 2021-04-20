@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -26,20 +27,26 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
+        try {
 
-        $schedule->call(function () {
+            $schedule->call(function () {
 
-            $companies = \App\Models\Company::all();
+                \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(200)->chunk(50, function ($companies) {
+                    foreach ($companies as $key => $company) {
 
-            //  $companies = \App\Models\Company::outdatedWithCipa()->limit(10);
+                        Log::debug('Updating company #'.($key+1).' - '.$company->uid);
 
-            foreach( $companies as $company ){
+                        $company->requestCipaUpdate();
+                    }
+                });
 
-                $company->requestCipaUpdate();
+            })->everyMinute()->name('update_company_record')->withoutOverlapping();
 
-            }
+        } catch (\Exception $e) {
 
-        })->everyMinute();
+            Log::error('ERROR Updating company: '.$e->getMessage());
+
+        }
 
     }
 

@@ -39,7 +39,7 @@ trait CommonTraits
         try {
 
             //  Set the pagination limit e.g 15
-            $limit = $data['limit'] ?? null;
+            $limit = $data['per_page'] ?? null;
 
             //  If we should paginate the builder
             if( $paginate === true ){

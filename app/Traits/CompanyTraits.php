@@ -3,6 +3,10 @@
 namespace App\Traits;
 
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+use App\Exports\CompaniesExport;
+use App\Imports\CompaniesImport;
+use Maatwebsite\Excel\Facades\Excel;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
 use App\Http\Resources\Company as CompanyResource;
 use App\Http\Resources\Companies as CompaniesResource;
@@ -230,8 +234,12 @@ trait CompanyTraits
 
             }else{
 
+                $fields = collect((new \App\Models\Company )->getFillable())->reject(function ($value, $key) {
+                                return $value == 'details';
+                            })->toArray();
+
                 //  Get the companies
-                $companies = \App\Models\Company::latest();
+                $companies = \App\Models\Company::select($fields)->latest('cipa_updated_at');
 
             }
 
@@ -361,11 +369,11 @@ trait CompanyTraits
              *  FILTER BY EXEMPT           *
              *******************************/
 
-            if( in_array('exempt', $statuses) ){
+            if( in_array('exempt', $statuses) && !in_array('not exempt', $statuses)){
 
                 $companies = $companies->exempt();
 
-            }elseif( in_array('not exempt', $statuses) ){
+            }elseif( in_array('not exempt', $statuses) && !in_array('exempt', $statuses) ){
 
                 $companies = $companies->notExempt();
 
@@ -387,21 +395,17 @@ trait CompanyTraits
 
             }
 
-            /**********************************
-             *  FILTER BY IMPORTED WITH CIPA  *
-             *********************************/
-
-            if( in_array('imported', $statuses) ){
+            /*************************************************
+             *  FILTER BY IMPORTED / NOT IMPORTED WITH CIPA  *
+             ************************************************/
+            if( in_array('imported', $statuses) && !in_array('not imported', $statuses) ){
 
                 $companies = $companies->ImportedFromCipa();
-
-            }
 
             /**************************************
              *  FILTER BY NOT IMPORTED WITH CIPA  *
              *************************************/
-
-            if( in_array('not imported', $statuses) ){
+            }elseif( in_array('not imported', $statuses) && !in_array('imported', $statuses) ){
 
                 $companies = $companies->notImportedFromCipa();
 
@@ -448,21 +452,19 @@ trait CompanyTraits
              *  FILTER BY DISSOLUTION DATE    *
              *********************************/
 
-            if( in_array('dissolution date', $statuses) && isset($data['dissolution_date']) && !empty($data['dissolution_date'])){
+            if( in_array('dissolution date', $statuses) && isset($data['dissolution_start_date']) && !empty($data['dissolution_start_date'])){
 
-                $start_date = null;
-                $end_date = null;
+                $start_date = $data['dissolution_start_date'];
 
-                if( isset($data['dissolution_date']['start_date']) && !empty($data['dissolution_date']['start_date']) ){
+                $companies = $companies->dissolutionDate($start_date, null);
 
-                    $start_date = \Carbon\Carbon::parse($data['dissolution_date']['start_date'])->format('Y-m-d H:i:s');
-                }
+            }
 
-                if( isset($data['dissolution_date']['end_date']) && !empty($data['dissolution_date']['end_date']) ){
-                    $end_date = \Carbon\Carbon::parse($data['dissolution_date']['end_date'])->format('Y-m-d H:i:s');
-                }
+            if( in_array('dissolution date', $statuses) && isset($data['dissolution_end_date']) && !empty($data['dissolution_end_date'])){
 
-                $companies = $companies->dissolutionDate($start_date, $end_date);
+                $end_date = $data['dissolution_end_date'];
+
+                $companies = $companies->dissolutionDate(null, $end_date);
 
             }
 
@@ -470,21 +472,19 @@ trait CompanyTraits
              *  FILTER BY INCORPORATION DATE    *
              ***********************************/
 
-            if( in_array('incorporation date', $statuses) && isset($data['incorporation_date']) && !empty($data['incorporation_date'])){
+            if( in_array('incorporation date', $statuses) && isset($data['incorporation_start_date']) && !empty($data['incorporation_start_date'])){
 
-                $start_date = null;
-                $end_date = null;
+                $start_date = $data['incorporation_start_date'];
 
-                if( isset($data['incorporation_date']['start_date']) && !empty($data['incorporation_date']['start_date']) ){
+                $companies = $companies->incorporationDate($start_date, null);
 
-                    $start_date = \Carbon\Carbon::parse($data['incorporation_date']['start_date'])->format('Y-m-d H:i:s');
-                }
+            }
 
-                if( isset($data['incorporation_date']['end_date']) && !empty($data['incorporation_date']['end_date']) ){
-                    $end_date = \Carbon\Carbon::parse($data['incorporation_date']['end_date'])->format('Y-m-d H:i:s');
-                }
+            if( in_array('incorporation date', $statuses) && isset($data['incorporation_end_date']) && !empty($data['incorporation_end_date'])){
 
-                $companies = $companies->incorporationDate($start_date, $end_date);
+                $end_date = $data['incorporation_end_date'];
+
+                $companies = $companies->incorporationDate(null, $end_date);
 
             }
 
@@ -492,49 +492,100 @@ trait CompanyTraits
              *  FILTER BY RE-REGISTRATION DATE  *
              ***********************************/
 
-            if( in_array('re-registration date', $statuses) && isset($data['re_registration_date']) && !empty($data['re_registration_date'])){
+            if( in_array('re-registration date', $statuses) && isset($data['re_registration_start_date']) && !empty($data['re_registration_start_date'])){
 
-                $start_date = null;
-                $end_date = null;
+                $start_date = $data['re_registration_start_date'];
 
-                if( isset($data['re_registration_date']['start_date']) && !empty($data['re_registration_date']['start_date']) ){
-
-                    $start_date = \Carbon\Carbon::parse($data['re_registration_date']['start_date'])->format('Y-m-d H:i:s');
-                }
-
-                if( isset($data['re_registration_date']['end_date']) && !empty($data['re_registration_date']['end_date']) ){
-                    $end_date = \Carbon\Carbon::parse($data['re_registration_date']['end_date'])->format('Y-m-d H:i:s');
-                }
-
-                $companies = $companies->reRegistrationDate($start_date, $end_date);
+                $companies = $companies->reRegistrationDate($start_date, null);
 
             }
 
-            /************************************
-             *  FILTER BY RE-REGISTRATION DATE  *
-             ***********************************/
+            if( in_array('re-registration date', $statuses) && isset($data['re_registration_end_date']) && !empty($data['re_registration_end_date'])){
 
-            if( in_array('a-r last filed date', $statuses) && isset($data['annual_return_last_filed_date']) && !empty($data['annual_return_last_filed_date'])){
+                $end_date = $data['re_registration_end_date'];
 
-                $start_date = null;
-                $end_date = null;
-
-                if( isset($data['annual_return_last_filed_date']['start_date']) && !empty($data['annual_return_last_filed_date']['start_date']) ){
-
-                    $start_date = \Carbon\Carbon::parse($data['annual_return_last_filed_date']['start_date'])->format('Y-m-d H:i:s');
-                }
-
-                if( isset($data['annual_return_last_filed_date']['end_date']) && !empty($data['annual_return_last_filed_date']['end_date']) ){
-                    $end_date = \Carbon\Carbon::parse($data['annual_return_last_filed_date']['end_date'])->format('Y-m-d H:i:s');
-                }
-
-                $companies = $companies->annualReturnLastFiledDate($start_date, $end_date);
+                $companies = $companies->reRegistrationDate(null, $end_date);
 
             }
+
+            /**********************************************
+             *  FILTER BY ANNUAL RETURN LAST FILLED DATE  *
+             *********************************************/
+
+            if( in_array('a-r last filed date', $statuses) && isset($data['annual_return_last_filed_start_date']) && !empty($data['annual_return_last_filed_start_date'])){
+
+                $start_date = $data['annual_return_last_filed_start_date'];
+
+                $companies = $companies->annualReturnLastFiledDate($start_date, null);
+
+            }
+
+            if( in_array('a-r last filed date', $statuses) && isset($data['annual_return_last_filed_end_date']) && !empty($data['annual_return_last_filed_end_date'])){
+
+                $end_date = $data['annual_return_last_filed_end_date'];
+
+                $companies = $companies->annualReturnLastFiledDate(null, $end_date);
+
+            }
+
         }
 
         //  Return the companies
         return $companies;
+    }
+
+    /**
+     *  This method exports a list of companies
+     */
+    public function exportResources($data = [])
+    {
+        try {
+
+            //  Get the companies
+            $companies = $this->getResources($data, null, null);
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            if( isset($data['export_type']) && !empty($data['export_type']) ){
+
+                //  Set the "export_type"
+                $export_type = $data['export_type'];
+
+            }else{
+
+                //  Set the "export_type"
+                $export_type = 'csv';
+
+            }
+
+            //  Set the file name e.g "companies.csv"
+            $file_name = 'companies.'.$export_type;
+
+            //  Download the excel data
+            return Excel::download(new CompaniesExport($companies), $file_name);
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method imports a list of companies
+     */
+    public function importResources($data = [])
+    {
+        try {
+
+            Excel::import(new CompaniesImport, request()->file('excelFile'));
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
     }
 
     /**
@@ -613,18 +664,77 @@ trait CompanyTraits
 
                 $cipaCompany = $cipaCompany->response->BursCompanyView;
 
-                $this->update([
-                    'name' => $cipaCompany->CompanyName->Value,
-                    'company_status' => $cipaCompany->CompanyStatus != new \stdClass() ? $cipaCompany->CompanyStatus->Value : null,
-                    'exempt' => $cipaCompany->Exempt != new \stdClass() ? $cipaCompany->Exempt->Value : null,
-                    'foreign_company' => $cipaCompany->ForeignCompany != new \stdClass() ? $cipaCompany->ForeignCompany->Value : null,
-                    'company_type' => $cipaCompany->CompanyType != new \stdClass() ? $cipaCompany->CompanyType->Value : null,
-                    'company_sub_type' => $cipaCompany->CompanySubType != new \stdClass() ? $cipaCompany->CompanySubType->Value : null,
-                    'annual_return_filing_month' => $cipaCompany->AnnualReturnFilingMonth != new \stdClass() ? $cipaCompany->AnnualReturnFilingMonth->Value : null,
-                    'incorporation_date' => $cipaCompany->IncorporationDate != new \stdClass() ? \Carbon\Carbon::parse($cipaCompany->IncorporationDate)->format('Y-m-d H:i:s') : null,
+                $template = [
                     'details' => $cipaCompany,
                     'cipa_updated_at' => \Carbon\Carbon::now()
-                ]);
+                ];
+
+                //  List of company fields we want to capture
+                $cipaCompanyFields = [
+                    'Info', 'CompanyName', 'CompanyStatus', 'Exempt', 'ForeignCompany', 'CompanyType', 'CompanySubType',
+                    'IncorporationDate', 'ReRegistrationDate', 'OldCompanyNumber', 'DissolutionDate', 'OwnConstitutionYn',
+                    'BusinessSector', 'AnnualReturnFilingMonth', 'ARLastFiledDate'
+                ];
+
+                $changeCompanyFields = [
+                    'CompanyName' => 'name',
+                    'ARLastFiledDate' => 'annual_return_last_filed_date'
+                ];
+
+                //  List of company fields that should be treated as dates
+                $cipaCompanyDates = ['IncorporationDate', 'ReRegistrationDate', 'DissolutionDate', 'ARLastFiledDate'];
+
+                foreach($cipaCompanyFields as $cipaCompanyField){
+
+                    //  If the field exists on the comapny record
+                    if( isset($cipaCompany->{$cipaCompanyField}) ){
+
+                        //  If the field is empty (Is equal to an empty Object {})
+                        if( $cipaCompany->{$cipaCompanyField} == new \stdClass() ){
+
+                            //  Cconvert to Null
+                            $cipaCompany->{$cipaCompanyField} = null;
+
+                        }
+
+                        //  If exists in Array of names to change
+                        if( array_key_exists($cipaCompanyField, $changeCompanyFields) ){
+
+                            //  Set the database field e.g $db_field = $changeCompanyFields['CompanyName']
+                            $db_field = $changeCompanyFields[ $cipaCompanyField ];
+
+                        //  If not Array e.g $cipaCompanyField = IncorporationDate
+                        }else{
+
+                            //  Convert to database field e.g "IncorporationDate" to "incorporation_date"
+                            $db_field = Str::snake($cipaCompanyField);
+
+                        }
+
+                        //  If this field is empty
+                        if( $cipaCompany->{$cipaCompanyField} == null ){
+
+                            //  Capture field and value
+                            $template[$db_field] = null;
+
+                        //  If the given field is a date
+                        }elseif( in_array($cipaCompany->{$cipaCompanyField}, $cipaCompanyDates) ){
+
+                            //  Convert to valid date and capture field and value
+                            $template[$db_field] = \Carbon\Carbon::parse($cipaCompany->{$cipaCompanyField}->Value)->format('Y-m-d H:i:s');
+
+                        }else{
+
+                            //  Capture field and value
+                            $template[$db_field] = $cipaCompany->{$cipaCompanyField}->Value;
+
+                        }
+
+                    }
+
+                }
+
+                $this->update($template);
 
                 //  If we should return an instance
                 if( $return ){
