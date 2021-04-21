@@ -31,7 +31,7 @@ class Kernel extends ConsoleKernel
 
             $schedule->call(function () {
 
-                \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(200)->chunk(50, function ($companies) {
+                \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(100)->chunk(25, function ($companies) {
                     foreach ($companies as $key => $company) {
 
                         Log::debug('Updating company #'.($key+1).' - '.$company->uid);

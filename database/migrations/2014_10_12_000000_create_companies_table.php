@@ -24,16 +24,22 @@ class CreateCompaniesTable extends Migration
             $table->string('company_type')->nullable();
             $table->string('company_sub_type')->nullable();
 
-            $table->timestamp('incorporation_date')->nullable();
-            $table->timestamp('re_registration_date')->nullable();
+            /**
+             *  Note that we use datetime() instead of timestamp()
+             *  because timestamp only supports dates after 1970,
+             *  but in our case we might get dates before that
+             *  time.
+             */
+            $table->datetime('incorporation_date')->nullable();
+            $table->datetime('re_registration_date')->nullable();
             $table->string('old_company_number')->nullable();
-            $table->timestamp('dissolution_date')->nullable();
+            $table->datetime('dissolution_date')->nullable();
 
             $table->boolean('own_constitution_yn')->default(false);
             $table->string('business_sector')->nullable();
 
             $table->unsignedTinyInteger('annual_return_filing_month')->nullable();
-            $table->timestamp('annual_return_last_filed_date')->nullable();
+            $table->datetime('annual_return_last_filed_date')->nullable();
 
             $table->json('details')->nullable();
             $table->timestamp('cipa_updated_at')->nullable();

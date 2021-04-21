@@ -28,6 +28,12 @@ Route::get('/', function () {
     ]);
 });
 
+Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function (Request $request) {
+
+    return redirect()->route('companies');
+
+})->name('dashboard');
+
 //  Companies Resource Routes
 Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
 
@@ -55,41 +61,3 @@ Route::get('importExportView', [ExcelController::class, 'importExportView'])->na
 Route::get('exportExcel/{type}', [ExcelController::class, 'exportExcel'])->name('exportExcel');
 // Route for import excel data to database.
 Route::post('importExcel', [ExcelController::class, 'importExcel'])->name('importExcel');
-
-Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function (Request $request) {
-
-    $total = \App\Models\Company::count();
-    $total_imported = \App\Models\Company::importedFromCipa()->count();
-    $total_not_imported = \App\Models\Company::notImportedFromCipa()->count();
-    $total_outdated = \App\Models\Company::outdatedWithCipa()->count();
-    $total_recently_updated = \App\Models\Company::recentlyUpdatedWithCipa()->count();
-
-    $progress_totals = [
-        'total' => $total,
-        'total_imported' => $total_imported,
-        'total_not_imported' => $total_not_imported,
-        'total_outdated' => $total_outdated,
-        'total_recently_updated' => $total_recently_updated,
-        'total_imported_percentage' => (int)($total_imported / $total * 100),
-        'total_recently_updated_percentage' => (int) ($total_recently_updated / $total * 100),
-    ];
-
-    $companies = \App\Models\Company::all();
-
-    /*
-    $companies = \App\Models\Company::outdatedWithCipa()->limit(10);
-
-    foreach( $companies as $company ){
-
-        $company->requestCipaUpdate();
-
-    }
-    */
-
-    //  Return response to Dashboard
-    return Inertia::render('Dashboard', [
-        'companies' => $companies,
-        'progress_totals' => $progress_totals
-    ]);
-
-})->name('dashboard');
