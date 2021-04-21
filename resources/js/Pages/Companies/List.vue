@@ -243,6 +243,14 @@
 
         </div>
 
+        <div class="overflow-auto border-b border-t my-3">
+            <div class="float-right font-bold text-gray-500 text-sm">
+                <span class="mr-2">Found</span>
+                <span class="mr-2 text-2xl text-green-500">{{ companies.total }}</span>
+                <span>{{ companies.total == 1 ? 'company' : 'companies' }}</span>
+            </div>
+        </div>
+
         <div class="border">
             <el-table ref="companiesTable" :data="tableData" @selection-change="handleSelectionChange">
                 <el-table-column width="50" type="selection" fixed :selectable="checkIfselectableRow"></el-table-column>
