@@ -3,6 +3,7 @@
 namespace App\Console;
 
 use DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -31,11 +32,12 @@ class Kernel extends ConsoleKernel
 
             $schedule->call(function () {
 
-                \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(100)->chunk(25, function ($companies) {
+                $companies = \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(100);
+
+                Log::debug('Run update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Total: '.$companies->count());
+
+                $companies->chunk(25, function ($companies) {
                     foreach ($companies as $key => $company) {
-
-                        Log::debug('Updating company #'.($key+1).' - '.$company->uid);
-
                         $company->requestCipaUpdate();
                     }
                 });
