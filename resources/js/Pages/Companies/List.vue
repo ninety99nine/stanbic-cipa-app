@@ -10,11 +10,13 @@
                 <div :style="{ width: '350px' }" class="flex items-center bg-white w-full block px-4 py-2 mt-2 rounded text-gray-300 font-bold mr-5">
                     <span class="border-r inline-block mr-2 pr-2 text-2xl">{{ progress_totals.total_recently_updated_percentage }}%</span>
                     <span class="text-xs text-gray-500">
-                        <span>{{ progress_totals.total_recently_updated }}</span>
-                        <span class="mx-1">/</span>
-                        <span>{{ progress_totals.total }}</span>
-                        <span class="ml-1">Recently updated</span>
-                        <span class="ml-1">(Last 24hrs)</span>
+                        <span class="block">
+                            <span>{{ progress_totals.total_recently_updated }}</span>
+                            <span class="mx-1">/</span>
+                            <span>{{ progress_totals.total }}</span>
+                            <span class="ml-1">Recently updated</span>
+                        </span>
+                        <span class="block">(Last 24hrs)</span>
                     </span>
                 </div>
                 <div :style="{ width: '350px' }" class="bg-white w-full block px-4 py-2 mt-2 rounded text-green-400 font-bold">
@@ -112,7 +114,7 @@
                         <template #dropdown>
                             <el-dropdown-menu>
                                 <el-dropdown-item icon="el-icon-refresh-right" @click="fetchCompanies()">Refresh</el-dropdown-item>
-                                <el-dropdown-item divided>Sort By</el-dropdown-item>
+                                <el-dropdown-item divided @click="showSortBy = true">Sort By</el-dropdown-item>
                                 <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
                                 <el-dropdown-item icon="el-icon-download" divided>
                                     <a :href="exportCompaniesUrl">Export to Excel</a>
@@ -208,6 +210,46 @@
             </template>
 
         </div>
+
+        <div v-if="showSortBy" class="bg-gray-50 p-5 mb-4 border-b-2 border-blue-100">
+
+            <div class="flex justify-between">
+                <h4 class="font-bold text-gray-500">Sort By</h4>
+                <jet-button @click="showSortBy = false">
+                    <i class="el-icon-close text-white"></i>
+                </jet-button>
+            </div>
+
+            <div class="my-5">
+
+                <el-select v-model="selectedSortBy" placeholder="Select" class="mr-4">
+                    <el-option
+                        v-for="sortByOption in sortByOptions"
+                        :key="sortByOption.value"
+                        :label="sortByOption.name"
+                        :value="sortByOption.value">
+                    </el-option>
+                </el-select>
+
+                <el-select v-model="selectedSortByType" placeholder="Select">
+                    <el-option
+                        v-for="sortByTypeOption in sortByTypeOptions"
+                        :key="sortByTypeOption.value"
+                        :label="sortByTypeOption.name"
+                        :value="sortByTypeOption.value">
+                    </el-option>
+                </el-select>
+
+            </div>
+
+            <div class="overflow-auto">
+                <jet-button :height="32" class="float-right" :disabled="isBulkUpdating" @click="fetchCompanies()">
+                    <span>Filter</span>
+                </jet-button>
+            </div>
+
+        </div>
+
 
         <div v-if="showSelectedColumns" class="bg-gray-50 p-5 mb-4 border-b-2 border-blue-100">
 
@@ -685,6 +727,41 @@
                     annual_return_last_filed_start_date: null,
                     annual_return_last_filed_end_date: null
                 },
+                showSortBy: false,
+                selectedSortBy: 'incorporation_date',
+                selectedSortByType: 'desc',
+                sortByOptions: [
+                    {
+                        name: 'Updated Date',
+                        value: 'cipa_updated_at'
+                    },
+                    {
+                        name: 'Incorporation Date',
+                        value: 'incorporation_date'
+                    },
+                    {
+                        name: 'Re-registration Date',
+                        value: 're_registration_date'
+                    },
+                    {
+                        name: 'Annual Return Last Filed Date',
+                        value: 'annual_return_last_filed_date'
+                    },
+                    {
+                        name: 'Dissolution Date',
+                        value: 'dissolution_date'
+                    }
+                ],
+                sortByTypeOptions: [
+                    {
+                        name: 'Latest first',
+                        value: 'desc',
+                    },
+                    {
+                        name: 'Oldest first',
+                        value: 'asc'
+                    }
+                ],
                 minizeFilterDates: false,
                 tableData: [],
                 searchWord: '',
@@ -799,6 +876,10 @@
                 url_append.per_page = this.perPage;
 
                 url_append.page = this.currentPage;
+
+                url_append.sort_by = this.selectedSortBy;
+
+                url_append.sort_by_type = this.selectedSortByType;
 
                 return url_append;
             },
@@ -1034,7 +1115,29 @@
 
                     }
                 });
-            }
+            },
+            setSortByFromUrl(){
+
+                if( route().params ){
+
+                    if( route().params.sort_by ){
+
+                        this.selectedSortBy = route().params.sort_by;
+                    }
+
+                }
+            },
+            setSortByTypeFromUrl(){
+
+                if( route().params ){
+
+                    if( route().params.sort_by_type ){
+
+                        this.selectedSortByType = route().params.sort_by_type;
+                    }
+
+                }
+            },
         },
         created(){
             console.log('this.companies');
@@ -1045,6 +1148,8 @@
             this.setSearchFromUrl();
             this.setFiltersFromUrl();
             this.setFilterDatesFromUrl();
+            this.setSortByFromUrl();
+            this.setSortByTypeFromUrl();
             this.setTableData(this.companies.data);
         }
     }

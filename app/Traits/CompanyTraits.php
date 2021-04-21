@@ -239,12 +239,15 @@ trait CompanyTraits
                             })->toArray();
 
                 //  Get the companies
-                $companies = \App\Models\Company::select($fields)->latest('cipa_updated_at');
+                $companies = \App\Models\Company::select($fields);
 
             }
 
             //  Filter the companies
             $companies = $this->filterResources($data, $companies);
+
+            //  Sort the companies
+            $companies = $this->sortResources($data, $companies);
 
             //  Return companies
             return $this->collectionResponse($data, $companies, $paginate);
@@ -532,6 +535,36 @@ trait CompanyTraits
 
         //  Return the companies
         return $companies;
+    }
+
+    /**
+     *  This method sorts the companies
+     */
+    public function sortResources($data = [], $companies)
+    {
+        //  Set the sort by e.g "incorporation_date"
+        $sort_by = $data['sort_by'] ?? null;
+
+        //  Set the sort by type e.g "desc"
+        $sort_by_type = $data['sort_by_type'] ?? null;
+
+        if($sort_by && $sort_by_type){
+
+            if( $sort_by_type == 'asc' ){
+
+                return $companies->orderByRaw('ISNULL('.$sort_by.'), '.$sort_by.' ASC');
+
+            }elseif( $sort_by_type == 'desc' ){
+
+                return $companies->orderByRaw('ISNULL('.$sort_by.'), '.$sort_by.' DESC');
+
+            }
+
+        }
+
+        //  By default sort by the incorporation date
+        return $companies->latest('incorporation_date');
+
     }
 
     /**
