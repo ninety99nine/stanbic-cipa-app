@@ -32,14 +32,31 @@ class Kernel extends ConsoleKernel
 
             $schedule->call(function () {
 
+                /** Get the companies from the oldest to newest updated
+                 *
+                 *  The oldest() method will allow us to order by the following rules:
+                 *
+                 *  1) Start with the companies that have the "cipa_updated_at" set to NULL
+                 *  2) Continue to the companies that have the "cipa_updated_at" from old to new
+                 *
+                 *  This order ensures that we update in the following manner:
+                 *
+                 *  1) Update the companies that have not been imported yet (cipa_updated_at should be NULL)
+                 *  2) Update the companies that were last updated a while ago
+                 *  3) Finish by updating companies that were updated recently
+                 *
+                 */
                 $companies = \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at');
 
-                Log::debug('Run update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Total: '.$companies->count());
+                Log::debug('Preparing to update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Found: '.$companies->count());
 
-                $companies->chunk(25, function ($companies) {
+                //  Only query 100 companies at a time
+                $companies->chunk(100, function ($companies) {
+
+                    //  Foreach company we retrieved from the query
                     foreach ($companies as $key => $company) {
 
-                        //  Update company
+                        //  Update the company
                         $company->requestCipaUpdate();
 
                     }
