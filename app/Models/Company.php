@@ -167,7 +167,10 @@ class Company extends Model
             $date = Carbon::now()->subDays($duration['days'])->format('Y-m-d H:i:s');
         }
 
-        return $query->whereNull('cipa_updated_at')->orWhere('cipa_updated_at', '<', $date);
+        return $query->whereNull('cipa_updated_at')->orWhere(function($query) use ($date){
+                    $query->whereNotNull('cipa_updated_at')
+                          ->where('cipa_updated_at', '<', $date);
+                });
     }
 
     /*
@@ -299,7 +302,7 @@ class Company extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'is_registered', 'is_cancelled', 'is_removed', 'is_compliant',
+        'resource_type', 'is_registered', 'is_cancelled', 'is_removed', 'is_not_found', 'is_compliant',
         'is_imported_from_cipa', 'is_recently_updated_with_cipa', 'cipa_updated_human_time'
     ];
 
@@ -427,6 +430,19 @@ class Company extends Model
     public function getIsRemovedAttribute()
     {
         $status = ($this->company_status == 'Removed');
+
+        return [
+            'status' => $status,
+            'name' => $status ? 'Yes' : 'No',
+        ];
+    }
+
+    /**
+     *  Company not found status
+     */
+    public function getIsNotFoundAttribute()
+    {
+        $status = ($this->company_status == 'Not Found');
 
         return [
             'status' => $status,

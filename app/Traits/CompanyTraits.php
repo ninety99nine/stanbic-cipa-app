@@ -328,7 +328,7 @@ trait CompanyTraits
              *******************************/
 
             $filterByCompanyStatuses = collect($statuses)->filter(function($status){
-                return in_array($status, ['registered', 'cancelled', 'removed']);
+                return in_array($status, ['registered', 'cancelled', 'removed', 'not found']);
             })->toArray();
 
             if( count($filterByCompanyStatuses) ){
@@ -660,6 +660,7 @@ trait CompanyTraits
                                 ->withBasicAuth($username, $password)
                                     ->viewCompanyWS(['TxnBusinessIdentifier' => $this->uin]);
 
+            //  If we have the company details
             if( isset( $cipaCompany->response ) ){
 
                 $cipaCompany = $cipaCompany->response->BursCompanyView;
@@ -744,7 +745,15 @@ trait CompanyTraits
 
                 }
 
-            }
+            }else{
+
+                //  Mark the company status as Not Found
+                $this->update([
+                    'company_status' => 'Not Found',
+                    'cipa_updated_at' => \Carbon\Carbon::now()
+                ]);
+
+        }
 
         } catch (\Exception $e) {
 

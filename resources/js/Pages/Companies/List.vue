@@ -265,7 +265,8 @@
                                 </template>
                                 <div>
                                     <span v-if="scope.row.is_cancelled" class="text-red-500">Company is cancelled</span>
-                                    <span v-if="scope.row.is_removed" class="text-red-500">Company is removed</span>
+                                    <span v-else-if="scope.row.is_removed" class="text-red-500">Company is removed</span>
+                                    <span v-else-if="scope.row.is_not_found" class="text-red-500">Company not found</span>
                                 </div>
                             </el-popover>
                         </span>
@@ -561,6 +562,9 @@
                             },
                             {
                                 value: 'Removed'
+                            },
+                            {
+                                value: 'Not Found'
                             }
                         ]
                     },
@@ -984,6 +988,7 @@
                             is_registered: company.is_registered.status,
                             is_cancelled: company.is_cancelled.status,
                             is_removed: company.is_removed.status,
+                            is_not_found: company.is_not_found.status,
                             is_compliant: company.is_compliant,
 
                             is_imported_from_cipa: company.is_imported_from_cipa.status,

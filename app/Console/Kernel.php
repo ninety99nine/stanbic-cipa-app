@@ -32,17 +32,20 @@ class Kernel extends ConsoleKernel
 
             $schedule->call(function () {
 
-                $companies = \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at')->limit(100);
+                $companies = \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at');
 
                 Log::debug('Run update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Total: '.$companies->count());
 
                 $companies->chunk(25, function ($companies) {
                     foreach ($companies as $key => $company) {
+
+                        //  Update company
                         $company->requestCipaUpdate();
+
                     }
                 });
 
-            })->everyMinute()->name('update_company_record')->withoutOverlapping();
+            })->name('update_company_record')->everyMinute()->withoutOverlapping();
 
         } catch (\Exception $e) {
 
