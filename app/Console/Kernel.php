@@ -46,7 +46,7 @@ class Kernel extends ConsoleKernel
                  *  3) Finish by updating companies that were updated recently
                  *
                  */
-                $companies = \App\Models\Company::outdatedWithCipa()->oldest('cipa_updated_at');
+                $companies = \App\Models\Company::oldest('cipa_updated_at');
 
                 Log::debug('Preparing to update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Found: '.$companies->count());
 
