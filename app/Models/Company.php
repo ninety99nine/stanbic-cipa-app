@@ -285,6 +285,15 @@ class Company extends Model
 
     /*
      *  Scope:
+     *  Returns companies that match the given annual return filling month
+     */
+    public function scopeAnnualReturnFilingMonth($query, $month_number)
+    {
+        $query->importedFromCipa()->where('annual_return_filing_month', $month_number);
+    }
+
+    /*
+     *  Scope:
      *  Returns companies that match the updated with Cipa date
      */
     public function scopeUpdatedWithCipaDate($query, $date, $type = 'after')

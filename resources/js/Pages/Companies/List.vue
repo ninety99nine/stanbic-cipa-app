@@ -166,45 +166,61 @@
                     <div v-if="filterByDissolutionDate">
                         <span class="block py-2 mb-2">Dissolution Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.dissolution_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.dissolution_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.dissolution_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.dissolution_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByIncorporationDate">
                         <span class="block py-2 mb-2">Incorporation Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.incorporation_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.incorporation_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.incorporation_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.incorporation_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByReRegistrationDate">
                         <span class="block py-2 mb-2">Re-registration Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.re_registration_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.re_registration_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.re_registration_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.re_registration_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByARLastFiledDate">
                         <span class="block py-2 mb-2">Annual Return Last Filed Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date"></el-date-picker>
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
                         </div>
                     </div>
 
+                    <div v-if="filterByARLastFiledDate">
+                        <span class="block py-2 mb-2">Annual Return Last Filed Date</span>
+                        <div class="flex items-center">
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <span>-</span>
+                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                        </div>
+                    </div>
+
+                <div v-if="filterByARFillingMonth">
+                    <span class="block py-2 mb-2">Annual Return Filling Month</span>
+                    <el-select v-model="filterDates.annual_return_filing_month" placeholder="Select" @change="fetchCompanies()">
+                        <el-option
+                            v-for="fillingMonthOption in fillingMonthOptions"
+                            :key="fillingMonthOption.value"
+                            :label="fillingMonthOption.name"
+                            :value="fillingMonthOption.value">
+                        </el-option>
+                    </el-select>
+
                 </div>
 
-                <div class="overflow-auto">
-                    <jet-button :height="32" class="float-right" :disabled="isBulkUpdating" @click="fetchCompanies()">
-                        <span>Filter</span>
-                    </jet-button>
                 </div>
 
             </template>
@@ -222,7 +238,7 @@
 
             <div class="my-5">
 
-                <el-select v-model="selectedSortBy" placeholder="Select" class="mr-4">
+                <el-select v-model="selectedSortBy" placeholder="Select" class="mr-4" @change="fetchCompanies()">
                     <el-option
                         v-for="sortByOption in sortByOptions"
                         :key="sortByOption.value"
@@ -231,7 +247,7 @@
                     </el-option>
                 </el-select>
 
-                <el-select v-model="selectedSortByType" placeholder="Select">
+                <el-select v-model="selectedSortByType" placeholder="Select" @change="fetchCompanies()">
                     <el-option
                         v-for="sortByTypeOption in sortByTypeOptions"
                         :key="sortByTypeOption.value"
@@ -240,12 +256,6 @@
                     </el-option>
                 </el-select>
 
-            </div>
-
-            <div class="overflow-auto">
-                <jet-button :height="32" class="float-right" :disabled="isBulkUpdating" @click="fetchCompanies()">
-                    <span>Filter</span>
-                </jet-button>
             </div>
 
         </div>
@@ -285,12 +295,22 @@
 
         </div>
 
-        <div class="overflow-auto border-b border-t my-3">
-            <div class="float-right font-bold text-gray-500 text-sm">
-                <span class="mr-2">Found</span>
-                <span class="mr-2 text-2xl text-green-500">{{ companies.total }}</span>
-                <span>{{ companies.total == 1 ? 'company' : 'companies' }}</span>
+        <div class="grid grid-cols-2 border-b border-t my-3">
+
+            <div class="font-bold text-gray-500 text-sm mt-2">
+                <span class="mr-2">Sort By:</span>
+                <span class="text-green-500">{{ selectedSortByName }}</span>
+                <span class="italic font-light"> - {{ selectedSortByTypeName }}</span>
             </div>
+
+            <div class="overflow-auto">
+                <div class="float-right font-bold text-gray-500 text-sm">
+                    <span class="mr-2">Found</span>
+                    <span class="mr-2 text-2xl text-green-500">{{ companies.total }}</span>
+                    <span>{{ companies.total == 1 ? 'company' : 'companies' }}</span>
+                </div>
+            </div>
+
         </div>
 
         <div class="border">
@@ -320,6 +340,124 @@
                         <span v-else-if="scope.row.is_imported_from_cipa">
                             <span :style="{ wordBreak: 'break-word !important' }">{{ scope.row.name }}</span>
                         </span>
+                    </template>
+                </el-table-column>
+                <el-table-column type="expand">
+                    <template #default="props">
+
+                        <div :style="{ maxWidth: '1200px' }">
+
+                            <div class="my-2">
+                                <span class="block font-bold text-gray-500 py-2 mb-2">Addresses</span>
+
+                                <div>
+
+                                    <div class="text-gray-500">
+                                        <span class="font-bold mr-2">Registered Office Address:</span>
+                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    </div>
+
+                                    <div class="text-gray-500">
+                                        <span class="font-bold mr-2">Postal Address:</span>
+                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    </div>
+
+                                    <div class="text-gray-500">
+                                        <span class="font-bold mr-2">Principal Place of Business:</span>
+                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-4 my-2">
+
+                                <div>
+                                    <span class="block font-bold text-gray-500 py-2 mb-2">Directors</span>
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-bold">Boitumelo Warona</span>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+                                        </div>
+                                        <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+                                    </div>
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-bold">Katlego Molemo</span>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+                                        </div>
+                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="block font-bold text-gray-500 py-2 mb-2">Shareholders</span>
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-bold">Boitumelo Warona</span>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+                                        </div>
+                                        <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+                                    </div>
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-bold">Katlego Molemo</span>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+                                        </div>
+                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="block font-bold text-gray-500 py-2 mb-2">Share Allocation</span>
+
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+
+                                        <div class="bg-gray-100 grid grid-cols-2 p-2 mb-2">
+
+                                            <div>
+                                                <span class="font-bold">Shareholder Name</span>
+                                            </div>
+
+                                            <div>
+                                                <span class="font-bold">Number of Shares</span>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="grid grid-cols-2 px-2">
+
+                                            <div>
+                                                <span class="block mb-2">Boitumelo Warona</span>
+                                                <span class="block">Katlego Molemo</span>
+                                            </div>
+
+                                            <div>
+                                                <span class="block mb-2">60%</span>
+                                                <span class="block">40%</span>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <div>
+                                    <span class="block font-bold text-gray-500 py-2 mb-2">Secretaries</span>
+                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                        <div class="flex justify-between">
+                                            <span class="font-bold">Fix All Botswana Proprietary Limited (BW00000162076)</span>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+                                        </div>
+                                        <span>Sizweni Showa, Plot:18329, Ledumadumane, Mogoditshane, Botswana</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
                     </template>
                 </el-table-column>
                 <el-table-column v-if="selectedColumns.includes('uin')" min-width="145" prop="uin" label="UIN">
@@ -703,7 +841,7 @@
                                 value: 'A-R Last Filed Date'
                             },
                             {
-                                value: 'A-R filling month'
+                                value: 'A-R Filling Month'
                             },
                             {
                                 value: 'Imported Date'
@@ -725,7 +863,9 @@
                     re_registration_end_date: null,
 
                     annual_return_last_filed_start_date: null,
-                    annual_return_last_filed_end_date: null
+                    annual_return_last_filed_end_date: null,
+
+                    annual_return_filing_month: null
                 },
                 showSortBy: false,
                 selectedSortBy: 'incorporation_date',
@@ -787,11 +927,28 @@
             isBulkUpdating(){
                 return (this.bulkUpdateProgress != null);
             },
+            selectedSortByName(){
+                return this.sortByOptions.find(sortByOption => sortByOption.value == this.selectedSortBy).name;
+            },
+            selectedSortByTypeName(){
+                return this.sortByTypeOptions.find(sortByTypeOption => sortByTypeOption.value == this.selectedSortByType).name;
+            },
+            fillingMonthOptions(){
+
+                var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+                return months.map((month, index) => {
+                    return {
+                        name: month,
+                        value: (index + 1)
+                    }
+                });
+            },
             showFilterDates(){
                 return this.selectedFilters.filter((selectedFilter) => {
                     return [
                             'Imported Date', 'Updated Date', 'Dissolution Date', 'Incorporation Date',
-                            'Re-registration Date', 'A-R Last Filed Date', 'A-R filling month',
+                            'Re-registration Date', 'A-R Last Filed Date', 'A-R Filling Month',
                         ].includes(selectedFilter);
                 }).length ? true : false;
             },
@@ -813,6 +970,11 @@
             filterByARLastFiledDate(){
                 return this.selectedFilters.filter((selectedFilter) => {
                     return ['A-R Last Filed Date'].includes(selectedFilter);
+                }).length ? true : false;
+            },
+            filterByARFillingMonth(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['A-R Filling Month'].includes(selectedFilter);
                 }).length ? true : false;
             },
             companiesUrlQueryParamsAsObject(){
@@ -863,14 +1025,19 @@
                     url_append.re_registration_end_date = moment(this.filterDates.re_registration_end_date).format('YYYY-MM-DD 00:00:00');
                 }
 
-                //  Set the filter annual_return_last_filed_ start date (If required)
+                //  Set the filter annual return last filed start date (If required)
                 if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_start_date ){
                     url_append.annual_return_last_filed_start_date = moment(this.filterDates.annual_return_last_filed_start_date).format('YYYY-MM-DD 00:00:00');
                 }
 
-                //  Set the filter annual_return_last_filed_ end date (If required)
+                //  Set the filter annual return last filed end date (If required)
                 if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_end_date ){
                     url_append.annual_return_last_filed_end_date = moment(this.filterDates.annual_return_last_filed_end_date).format('YYYY-MM-DD 00:00:00');
+                }
+
+                //  Set the filter annual return filled month (If required)
+                if( this.filterByARFillingMonth && this.filterDates.annual_return_filing_month ){
+                    url_append.annual_return_filing_month = this.filterDates.annual_return_filing_month;
                 }
 
                 url_append.per_page = this.perPage;

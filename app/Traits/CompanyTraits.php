@@ -531,6 +531,18 @@ trait CompanyTraits
 
             }
 
+            /*******************************************
+             *  FILTER BY ANNUAL RETURN FILLING MONTH  *
+             *******************************************/
+
+            if( in_array('a-r filling month', $statuses) && isset($data['annual_return_filing_month']) && !empty($data['annual_return_filing_month'])){
+
+                $month_number = $data['annual_return_filing_month'];
+
+                $companies = $companies->annualReturnFilingMonth($month_number);
+
+            }
+
         }
 
         //  Return the companies
