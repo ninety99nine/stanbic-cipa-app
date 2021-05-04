@@ -19,8 +19,8 @@ class CreateCompaniesTable extends Migration
             $table->string('name')->nullable();
             $table->string('info', 500)->nullable();
             $table->string('company_status')->nullable();
-            $table->boolean('exempt')->default(false);
-            $table->boolean('foreign_company')->default(false);
+            $table->char('exempt', 1)->nullable();
+            $table->char('foreign_company', 1)->nullable();
             $table->string('company_type')->nullable();
             $table->string('company_sub_type')->nullable();
 
@@ -35,11 +35,22 @@ class CreateCompaniesTable extends Migration
             $table->string('old_company_number')->nullable();
             $table->datetime('dissolution_date')->nullable();
 
-            $table->boolean('own_constitution_yn')->default(false);
+            $table->char('own_constitution_yn', 1)->nullable();
             $table->string('business_sector')->nullable();
 
             $table->unsignedTinyInteger('annual_return_filing_month')->nullable();
             $table->datetime('annual_return_last_filed_date')->nullable();
+
+            $table->boolean('marked_as_client')->default(0);
+
+            $table->json('registered_office_address')->nullable();
+            $table->json('postal_address')->nullable();
+            $table->json('principal_place_of_business')->nullable();
+
+            $table->json('ownership_bundles')->nullable();
+            $table->json('directors')->nullable();
+            $table->json('shareholders')->nullable();
+            $table->json('secretaries')->nullable();
 
             $table->json('details')->nullable();
             $table->timestamp('cipa_updated_at')->nullable();

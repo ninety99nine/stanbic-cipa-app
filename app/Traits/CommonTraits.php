@@ -34,18 +34,45 @@ trait CommonTraits
         }
     }
 
-    public function collectionResponse($data = [], $builder = null, $paginate = true)
+    public function collectionResponse($data = [], $builder_or_collection = null, $paginate = true)
     {
         try {
 
             //  Set the pagination limit e.g 15
-            $limit = $data['per_page'] ?? null;
+            $limit = $data['per_page'] ?? 10;
+
+            //  If this is an Eloquent Builder
+            if( $builder_or_collection instanceof \Illuminate\Database\Eloquent\Builder ){
+
+                //  This is an Eloquent Builder
+                $builder = $builder_or_collection;
+
+            //  If this is a Collection
+            }elseif( $builder_or_collection instanceof \Illuminate\Support\Collection ){
+
+                //  This is a Collection
+                $collection = $builder_or_collection;
+
+            }
 
             //  If we should paginate the builder
             if( $paginate === true ){
 
-                //  Return PAGINATE
-                return $builder->paginate($limit);
+                //  If this is an Eloquent Builder then we can Paginate using Laravel paginate()
+                if( isset($builder) ){
+
+                    //  Return Paginate of Eloquent Builder
+                    return $builder->paginate($limit);
+
+                //  If this is a Collection then we can Paginate using our custom paginate() helper method
+                }elseif( isset($collection) ){
+
+                    dd(\App\Helpers\CollectionHelper::paginate($collection, $limit));
+
+                    //  Return Paginate of Eloquent Builder
+                    return \App\Helpers\CollectionHelper::paginate($collection, $limit);
+
+                }
 
             //  If we should not paginate the builder
             }elseif( $paginate === false ){

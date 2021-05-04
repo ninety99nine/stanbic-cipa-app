@@ -18,7 +18,8 @@ class Company extends Model
      * @var string
      */
     protected $casts = [
-        'details' => 'array'
+        'details' => 'array',
+        'marked_as_client' => 'boolean'
     ];
 
     /**
@@ -42,10 +43,13 @@ class Company extends Model
     protected $fillable = [
         'uin', 'name', 'info', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
         'incorporation_date', 're_registration_date', 'old_company_number', 'dissolution_date', 'own_constitution_yn',
-        'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at'
+        'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at',
+
+        'marked_as_client',
+
+        'registered_office_address', 'postal_address', 'principal_place_of_business',
+        'ownership_bundles', 'directors', 'shareholders', 'secretaries'
     ];
-
-
 
     /*
      *  Scope:
@@ -76,7 +80,7 @@ class Company extends Model
      */
     public function scopeExempt($query)
     {
-        return $query->where('exempt', '1');
+        return $query->where('exempt', 'y');
     }
 
     /*
@@ -85,7 +89,16 @@ class Company extends Model
      */
     public function scopeNotExempt($query)
     {
-        return $query->where('exempt', '0');
+        return $query->where('exempt','!=','y');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are not specified exempt
+     */
+    public function scopeNotSpecifiedExempt($query)
+    {
+        return $query->whereNull('exempt');
     }
 
     /*
@@ -94,7 +107,7 @@ class Company extends Model
      */
     public function scopeForeignCompany($query)
     {
-        return $query->where('foreign_company', '1');
+        return $query->where('foreign_company', 'y');
     }
 
     /*
@@ -103,7 +116,43 @@ class Company extends Model
      */
     public function scopeNotForeignCompany($query)
     {
-        return $query->where('foreign_company', '0');
+        return $query->where('foreign_company','!=','y');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are not specified foreign company
+     */
+    public function scopeNotSpecifiedForeignCompany($query)
+    {
+        return $query->whereNull('foreign_company');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are own constitution
+     */
+    public function scopeOwnConstitutionYn($query)
+    {
+        return $query->where('own_constitution_yn', 'y');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are not own constitution
+     */
+    public function scopeNotOwnConstitutionYn($query)
+    {
+        return $query->where('own_constitution_yn','!=','y');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are not specified own constitution
+     */
+    public function scopeNotSpecifiedOwnConstitutionYn($query)
+    {
+        return $query->whereNull('own_constitution_yn');
     }
 
     /*
@@ -306,6 +355,15 @@ class Company extends Model
         }
     }
 
+    /*************************************
+     *  RELATIONSHIPS                    *
+     ************************************/
+
+    public function addresses()
+    {
+        return $this->morphMany(Address::class, 'owner');
+    }
+
     /** ATTRIBUTES
      *
      *  Note that the "resource_type" is defined within CommonTraits.
@@ -341,11 +399,11 @@ class Company extends Model
      */
     public function getExemptAttribute($value)
     {
-        $status = $value;
+        $status = ($value == 'y');
 
         return [
             'status' => $status,
-            'name' => $status ? 'Yes' : 'No'
+            'name' => $status ? 'Yes' : ($status == null ? 'Not specified' : 'No')
         ];
     }
 
@@ -354,11 +412,11 @@ class Company extends Model
      */
     public function getForeignCompanyAttribute($value)
     {
-        $status = $value;
+        $status = ($value == 'y');
 
         return [
             'status' => $status,
-            'name' => $status ? 'Yes' : 'No'
+            'name' => $status ? 'Yes' : ($status == null ? 'Not specified' : 'No')
         ];
     }
 
@@ -367,11 +425,11 @@ class Company extends Model
      */
     public function getOwnConstitutionYnAttribute($value)
     {
-        $status = $value;
+        $status = ($value == 'y');
 
         return [
             'status' => $status,
-            'name' => $status ? 'Yes' : 'No'
+            'name' => $status ? 'Yes' : ($status == null ? 'Not specified' : 'No')
         ];
     }
 
@@ -405,6 +463,112 @@ class Company extends Model
     public function getAnnualReturnLastFiledDateAttribute($value)
     {
         return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
+
+    public function getRegisteredOfficeAddressAttribute($value)
+    {
+        $address = '';
+
+        $value = json_decode($value, true);
+
+        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
+
+        foreach ($addressFields as $field) {
+
+            if( isset($value[$field]) && !empty($value[$field]) ){
+
+                $address .= ($address ? ', ': '') . $value[$field];
+
+            }
+        }
+
+        return $address;
+    }
+
+    public function getPostalAddressAttribute($value)
+    {
+        $address = '';
+
+        $value = json_decode($value, true);
+
+        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
+
+        foreach ($addressFields as $field) {
+
+            if( isset($value[$field]) && !empty($value[$field]) ){
+
+                $address .= ($address ? ', ': '') . $value[$field];
+
+            }
+        }
+
+        return $address;
+    }
+
+    public function getPrincipalPlaceOfBusinessAttribute($value)
+    {
+        $address = '';
+
+        $value = json_decode($value, true);
+
+        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
+
+        foreach ($addressFields as $field) {
+
+            if( isset($value[$field]) && !empty($value[$field]) ){
+
+                $address .= ($address ? ', ': '') . $value[$field];
+
+            }
+        }
+
+        return $address;
+    }
+
+    public function getOwnershipBundlesAttribute($value)
+    {
+        $value = json_decode($value, true);
+
+        //  If we can access the "identifier" field directly then convert into an Array
+        $ownership_bundles = isset($value['identifier']) ? [$value]: $value;
+
+        //  Calculate the total number of shares
+        $total_shares = collect($ownership_bundles)->map(function($ownership_bundle){
+            return $ownership_bundle['number_of_shares'];
+        })->sum();
+
+        return collect($ownership_bundles)->map(function($ownership_bundle) use ($total_shares) {
+
+            //  Re-calculate the number of shares out of 100% to 2 decimal places
+            $ownership_bundle['number_of_shares'] = round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2).'%';
+
+            //  Return the updated ownership bundle
+            return $ownership_bundle;
+        });
+    }
+
+    public function getDirectorsAttribute($value)
+    {
+        $value = json_decode($value, true);
+
+        //  If we can access the "identifier" field directly then convert into an Array
+        return isset($value['identifier']) ? [$value]: $value;
+    }
+
+    public function getShareholdersAttribute($value)
+    {
+        $value = json_decode($value, true);
+
+        //  If we can access the "identifier" field directly then convert into an Array
+        return isset($value['identifier']) ? [$value]: $value;
+    }
+
+    public function getSecretariesAttribute($value)
+    {
+        $value = json_decode($value, true);
+
+        //  If we can access the "identifier" field directly then convert into an Array
+        return isset($value['identifier']) ? [$value]: $value;
     }
 
     /**
@@ -549,17 +713,29 @@ class Company extends Model
 
     public function setExemptAttribute($value)
     {
-        $this->attributes['exempt'] = strtolower($value) == true ? 1 : 0;
+        if( ($value === true) || ($value === false) ){
+            $this->attributes['exempt'] = ($value == true ? 'y' : 'n');
+        }else{
+            $this->attributes['exempt'] = null;
+        }
     }
 
     public function setForeignCompanyAttribute($value)
     {
-        $this->attributes['foreign_company'] = strtolower($value) == true ? 1 : 0;
+        if( ($value === true) || ($value === false) ){
+            $this->attributes['foreign_company'] = ($value == true ? 'y' : 'n');
+        }else{
+            $this->attributes['foreign_company'] = null;
+        }
     }
 
     public function setOwnConstitutionYnAttribute($value)
     {
-        $this->attributes['own_constitution_yn'] = strtolower($value) == true ? 1 : 0;
+        if( ($value === true) || ($value === false) ){
+            $this->attributes['own_constitution_yn'] = ($value == true ? 'y' : 'n');
+        }else{
+            $this->attributes['own_constitution_yn'] = null;
+        }
     }
 
     public function setCompanyTypeAttribute($value)

@@ -18,7 +18,8 @@ class CompaniesImport implements ToModel, WithHeadingRow, WithBatchInserts, With
         }
 
         return new Company([
-            'uin' => $row['uin']
+            'uin' => $row['uin'],
+            'marked_as_client' => true
         ]);
     }
 

@@ -45,6 +45,11 @@ class Kernel extends ConsoleKernel
                  *  2) Update the companies that were last updated a while ago
                  *  3) Finish by updating companies that were updated recently
                  *
+                 *  We don't need too much info about the companies, we just want the Eloquent Model instance
+                 *  and the company UIN. Therefore to avoid "Running Out Of Memory" because of pulling too
+                 *  much data we will only request the "uin" field since this is the only field required
+                 *  to search the matching record on CIPA side ($this->uin). The Eloquest instance can
+                 *  then be used to update the company e.g $this->update([ ... ]);
                  */
                 $companies = \App\Models\Company::oldest('cipa_updated_at');
 
@@ -54,10 +59,12 @@ class Kernel extends ConsoleKernel
                 $companies->chunk(100, function ($companies) {
 
                     //  Foreach company we retrieved from the query
-                    foreach ($companies as $key => $company) {
+                    foreach ($companies as $company) {
+
+                        Log::debug('Company UIN - '.$company->uin);
 
                         //  Update the company
-                        $company->requestCipaUpdate();
+                        $company->requestCipaUpdate(false);
 
                     }
                 });

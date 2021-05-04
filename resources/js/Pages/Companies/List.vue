@@ -37,9 +37,8 @@
                 <el-input v-model="searchWord" :disabled="isBulkUpdating" placeholder="Search companies" prefix-icon="el-icon-search"
                           size="small" class="outline-none mr-2" :style="{ outline: 'none' }">
                     <template #prepend>
-                        <el-select v-model="selectSearch" placeholder="Select" :style="{ width: '110px' }">
-                            <el-option label="Stanbic" value="1"></el-option>
-                            <el-option label="CIPA" value="2"></el-option>
+                        <el-select v-model="searchType" placeholder="Select" :style="{ width: '110px' }">
+                            <el-option v-for="(searchType, index) in searchTypes" :key="index" :label="searchType.name" :value="searchType.value"></el-option>
                         </el-select>
                     </template>
                 </el-input>
@@ -48,7 +47,7 @@
 
             <div>
                 <el-select v-model="selectedFilters" multiple placeholder="Filters" size="small" class="w-full"
-                            @change="fetchCompanies()" :disabled="isBulkUpdating">
+                            @change="handleFilter()" :disabled="isBulkUpdating">
                     <el-option-group v-for="filter in filters" :key="filter.label" :label="filter.label">
                         <el-option v-for="option in filter.options"
                             :key="option.value"
@@ -150,67 +149,67 @@
 
         </div>
 
-        <div v-if="showFilterDates" :class="'bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 '+ (minizeFilterDates ? 'py-2' : 'py-5')">
+        <div v-if="showFilterSettings" :class="'bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 '+ (minizeFilterSettings ? 'py-2' : 'py-5')">
 
             <div class="flex justify-between">
                 <h4 class="font-bold text-gray-500">Filter Dates</h4>
-                <jet-button @click="minizeFilterDates = !minizeFilterDates">
-                    <i :class="( minizeFilterDates ? 'el-icon-bottom' : 'el-icon-top') +' text-white'"></i>
+                <jet-button @click="minizeFilterSettings = !minizeFilterSettings">
+                    <i :class="( minizeFilterSettings ? 'el-icon-bottom' : 'el-icon-top') +' text-white'"></i>
                 </jet-button>
             </div>
 
-            <template v-if="!minizeFilterDates">
+            <template v-if="!minizeFilterSettings">
 
                 <div class="grid grid-cols-4 gap-4 my-5">
 
                     <div v-if="filterByDissolutionDate">
                         <span class="block py-2 mb-2">Dissolution Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.dissolution_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.dissolution_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.dissolution_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.dissolution_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByIncorporationDate">
                         <span class="block py-2 mb-2">Incorporation Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.incorporation_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.incorporation_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.incorporation_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.incorporation_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByReRegistrationDate">
                         <span class="block py-2 mb-2">Re-registration Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.re_registration_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.re_registration_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.re_registration_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.re_registration_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByARLastFiledDate">
                         <span class="block py-2 mb-2">Annual Return Last Filed Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByARLastFiledDate">
                         <span class="block py-2 mb-2">Annual Return Last Filed Date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.annual_return_last_filed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchCompanies()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterDates.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()">></el-date-picker>
+                            <el-date-picker v-model="filterSettings.annual_return_last_filed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchCompanies()"></el-date-picker>
                         </div>
                     </div>
 
                 <div v-if="filterByARFillingMonth">
                     <span class="block py-2 mb-2">Annual Return Filling Month</span>
-                    <el-select v-model="filterDates.annual_return_filing_month" placeholder="Select" @change="fetchCompanies()">
+                    <el-select v-model="filterSettings.annual_return_filing_month" placeholder="Select" @change="fetchCompanies()">
                         <el-option
                             v-for="fillingMonthOption in fillingMonthOptions"
                             :key="fillingMonthOption.value"
@@ -295,12 +294,21 @@
 
         </div>
 
-        <div class="grid grid-cols-2 border-b border-t my-3">
+        <div class="grid grid-cols-3 border-b border-t my-3">
 
             <div class="font-bold text-gray-500 text-sm mt-2">
                 <span class="mr-2">Sort By:</span>
                 <span class="text-green-500">{{ selectedSortByName }}</span>
                 <span class="italic font-light"> - {{ selectedSortByTypeName }}</span>
+            </div>
+
+            <div class="font-bold text-gray-500 text-sm mt-2">
+                <template v-if ="searchWord">
+                    <span class="mr-2">Search:</span>
+                    <span class="text-green-500">{{ searchWord }}</span>
+                    <span class="font-light mx-1">within</span>
+                    <span class="text-green-500">{{ selectedSearchTypeName }}</span>
+                </template>
             </div>
 
             <div class="overflow-auto">
@@ -343,78 +351,70 @@
                     </template>
                 </el-table-column>
                 <el-table-column type="expand">
-                    <template #default="props">
+                    <template #default="scope">
 
                         <div :style="{ maxWidth: '1200px' }">
-
-                            <div class="my-2">
-                                <span class="block font-bold text-gray-500 py-2 mb-2">Addresses</span>
-
-                                <div>
-
-                                    <div class="text-gray-500">
-                                        <span class="font-bold mr-2">Registered Office Address:</span>
-                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
-                                    </div>
-
-                                    <div class="text-gray-500">
-                                        <span class="font-bold mr-2">Postal Address:</span>
-                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
-                                    </div>
-
-                                    <div class="text-gray-500">
-                                        <span class="font-bold mr-2">Principal Place of Business:</span>
-                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
-                                    </div>
-
-                                </div>
-
-                            </div>
 
                             <div class="grid grid-cols-3 gap-4 my-2">
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Directors</span>
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
-                                        <div class="flex justify-between">
-                                            <span class="font-bold">Boitumelo Warona</span>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
+
+                                    <div v-for="(director, index) in scope.row.directors" :key="index"
+                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
+                                        <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                            <a :href="route('ownership-bundles', {search: director.individual_name.first_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                <span class="mr-1">{{ director.individual_name.first_name }}</span>
+                                                <span v-if="director.individual_name.middle_names" class="mr-1">{{ director.individual_name.middle_names }}</span>
+                                                <span>{{ director.individual_name.last_name }}</span>
+                                            </a>
+                                            <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
                                         </div>
                                         <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
                                     </div>
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
-                                        <div class="flex justify-between">
-                                            <span class="font-bold">Katlego Molemo</span>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
-                                        </div>
-                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
-                                    </div>
+
                                 </div>
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Shareholders</span>
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
-                                        <div class="flex justify-between">
-                                            <span class="font-bold">Boitumelo Warona</span>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
-                                        </div>
-                                        <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
-                                    </div>
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
-                                        <div class="flex justify-between">
-                                            <span class="font-bold">Katlego Molemo</span>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
-                                        </div>
-                                        <span>Plot 28562 Fair Grounds Mall, Samora Machel Drive, Gaborone, Botswana</span>
+                                    <div v-for="(shareholder, index) in scope.row.shareholders" :key="index"
+                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
+
+                                        <template v-if="shareholder.individual_shareholder">
+                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                <a :href="route('ownership-bundles', {search: shareholder.individual_shareholder.individual_name.first_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                    <span class="mr-1">{{ shareholder.individual_shareholder.individual_name.first_name }}</span>
+                                                    <span v-if="shareholder.individual_shareholder.individual_name.middle_names" class="mr-1">{{ shareholder.individual_shareholder.individual_name.middle_names }}</span>
+                                                    <span>{{ shareholder.individual_shareholder.individual_name.last_name }}</span>
+                                                </a>
+                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
+                                            </div>
+                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+
+                                        </template>
+
+                                        <template v-else-if="shareholder.entity_shareholder">
+                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                <span class="font-bold">
+                                                    <span v-if="shareholder.entity_shareholder.uin" class="mr-1">{{ shareholder.entity_shareholder.company_name }}</span>
+                                                    <a v-else :href="route('ownership-bundles', {search: shareholder.entity_shareholder.company_name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.entity_shareholder.company_name }}</a>
+                                                    <span v-if="shareholder.entity_shareholder.uin">
+                                                        (<a :href="route('ownership-bundles', {search: shareholder.entity_shareholder.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.entity_shareholder.uin }}</a>)
+                                                    </span>
+                                                </span>
+                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
+                                            </div>
+                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+                                        </template>
                                     </div>
                                 </div>
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Share Allocation</span>
 
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
+                                    <div class="bg-white rounded-sm shadow-md border mb-2">
 
-                                        <div class="bg-gray-100 grid grid-cols-2 p-2 mb-2">
+                                        <div class="bg-gray-100 grid grid-cols-2 py-2 px-4 mb-2">
 
                                             <div>
                                                 <span class="font-bold">Shareholder Name</span>
@@ -426,18 +426,9 @@
 
                                         </div>
 
-                                        <div class="grid grid-cols-2 px-2">
-
-                                            <div>
-                                                <span class="block mb-2">Boitumelo Warona</span>
-                                                <span class="block">Katlego Molemo</span>
-                                            </div>
-
-                                            <div>
-                                                <span class="block mb-2">60%</span>
-                                                <span class="block">40%</span>
-                                            </div>
-
+                                        <div v-for="(ownership_bundle, index) in scope.row.ownership_bundles" :key="index" class="grid grid-cols-2 px-2 px-4 mb-2">
+                                            <span class="block">{{ ownership_bundle.owners.owner.shareholder_name }}</span>
+                                            <span class="block">{{ ownership_bundle.number_of_shares }}</span>
                                         </div>
 
                                     </div>
@@ -446,12 +437,36 @@
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Secretaries</span>
-                                    <div class="bg-white rounded-sm shadow-md p-4 mb-2">
-                                        <div class="flex justify-between">
-                                            <span class="font-bold">Fix All Botswana Proprietary Limited (BW00000162076)</span>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer">Show More</span>
-                                        </div>
-                                        <span>Sizweni Showa, Plot:18329, Ledumadumane, Mogoditshane, Botswana</span>
+                                    <div v-for="(secretary, index) in scope.row.secretaries" :key="index"
+                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
+
+                                        <template v-if="secretary.individual_secretary">
+                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                <a :href="route('ownership-bundles', {search: secretary.individual_secretary.individual_name.first_name, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">
+                                                    <span class="mr-1">{{ secretary.individual_secretary.individual_name.first_name }}</span>
+                                                    <span v-if="secretary.individual_secretary.individual_name.middle_names" class="mr-1">{{ secretary.individual_secretary.individual_name.middle_names }}</span>
+                                                    <span>{{ secretary.individual_secretary.individual_name.last_name }}</span>
+                                                </a>
+                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
+                                            </div>
+                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+
+                                        </template>
+
+                                        <template v-else-if="secretary.entity_secretary">
+                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                <span class="font-bold">
+                                                    <span v-if="secretary.entity_secretary.uin" class="mr-1">{{ secretary.entity_secretary.company_name }}</span>
+                                                    <a v-else href="/directors-and-secretarys" class="text-blue-800 underline cursor-pointer">{{ secretary.entity_secretary.company_name }}</a>
+                                                    <span v-if="secretary.entity_secretary.uin">
+                                                        (<a href="/directors-and-secretarys" class="text-blue-800 text-xs underline cursor-pointer">{{ secretary.entity_secretary.uin }}</a>)
+                                                    </span>
+                                                </span>
+                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
+                                            </div>
+                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+                                        </template>
+
                                     </div>
                                 </div>
 
@@ -476,7 +491,7 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('exempt')" min-width="100" prop="exempt" label="Exempt" align="center" sortable>
+                <el-table-column v-if="selectedColumns.includes('exempt')" min-width="110" prop="exempt" label="Exempt" align="center" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
@@ -492,11 +507,37 @@
                         </span>
                     </template>
                 </el-table-column>
+
                 <el-table-column v-if="selectedColumns.includes('old company number')" min-width="160" prop="old_company_number" label="Old company #" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
                             <span>{{ scope.row.old_company_number }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column v-if="selectedColumns.includes('registered office address')" min-width="250" prop="registered_office_address" label="Registered office address" sortable>
+                    <template #default="scope">
+                        <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
+                        <span v-else-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.registered_office_address }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column v-if="selectedColumns.includes('postal address')" min-width="250" prop="postal_address" label="Postal address" sortable>
+                    <template #default="scope">
+                        <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
+                        <span v-else-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.registered_office_address }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column v-if="selectedColumns.includes('principal place of business')" min-width="250" prop="principal_place_of_business" label="Principal place of business" sortable>
+                    <template #default="scope">
+                        <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
+                        <span v-else-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.principal_place_of_business }}</span>
                         </span>
                     </template>
                 </el-table-column>
@@ -698,6 +739,18 @@
                         status: true
                     },
                     {
+                        name: 'registered office address',
+                        status: true
+                    },
+                    {
+                        name: 'postal address',
+                        status: true
+                    },
+                    {
+                        name: 'principal place of business',
+                        status: true
+                    },
+                    {
                         name: 'dissolution date',
                         status: true
                     },
@@ -729,7 +782,6 @@
                 addClient: false,
                 showSelectedColumns: false,
                 selectedFilters: [],
-                selectSearch: '1',
                 filters: [
                     {
                         label: 'Company Status',
@@ -852,7 +904,7 @@
                         ]
                     }
                 ],
-                filterDates: {
+                filterSettings: {
                     dissolution_start_date: null,
                     dissolution_end_date: null,
 
@@ -902,9 +954,20 @@
                         value: 'asc'
                     }
                 ],
-                minizeFilterDates: false,
+                minizeFilterSettings: false,
                 tableData: [],
                 searchWord: '',
+                searchType: 'internal',
+                searchTypes: [
+                    {
+                        name: 'Stanbic',
+                        value: 'internal'
+                    },
+                    {
+                        name: 'CIPA',
+                        value: 'external'
+                    }
+                ],
                 multipleSelection: [],
                 percentage: 30,
                 updatingIndexes: [],
@@ -933,6 +996,9 @@
             selectedSortByTypeName(){
                 return this.sortByTypeOptions.find(sortByTypeOption => sortByTypeOption.value == this.selectedSortByType).name;
             },
+            selectedSearchTypeName(){
+                return this.searchTypes.find(searchType => searchType.value == this.searchType).name;
+            },
             fillingMonthOptions(){
 
                 var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -944,7 +1010,7 @@
                     }
                 });
             },
-            showFilterDates(){
+            showFilterSettings(){
                 return this.selectedFilters.filter((selectedFilter) => {
                     return [
                             'Imported Date', 'Updated Date', 'Dissolution Date', 'Incorporation Date',
@@ -985,6 +1051,7 @@
                 if( this.searchWord ){
 
                     url_append.search = this.searchWord;
+                    url_append.search_type = this.searchType;
 
                 }
 
@@ -996,48 +1063,48 @@
                 }
 
                 //  Set the filter dissolution start date (If required)
-                if( this.filterByDissolutionDate && this.filterDates.dissolution_start_date ){
-                    url_append.dissolution_start_date = moment(this.filterDates.dissolution_start_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByDissolutionDate && this.filterSettings.dissolution_start_date ){
+                    url_append.dissolution_start_date = moment(this.filterSettings.dissolution_start_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter dissolution end date (If required)
-                if( this.filterByDissolutionDate && this.filterDates.dissolution_end_date ){
-                    url_append.dissolution_end_date = moment(this.filterDates.dissolution_end_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByDissolutionDate && this.filterSettings.dissolution_end_date ){
+                    url_append.dissolution_end_date = moment(this.filterSettings.dissolution_end_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter incorporation start date (If required)
-                if( this.filterByIncorporationDate && this.filterDates.incorporation_start_date ){
-                    url_append.incorporation_start_date = moment(this.filterDates.incorporation_start_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByIncorporationDate && this.filterSettings.incorporation_start_date ){
+                    url_append.incorporation_start_date = moment(this.filterSettings.incorporation_start_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter incorporation end date (If required)
-                if( this.filterByIncorporationDate && this.filterDates.incorporation_end_date ){
-                    url_append.incorporation_end_date = moment(this.filterDates.incorporation_end_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByIncorporationDate && this.filterSettings.incorporation_end_date ){
+                    url_append.incorporation_end_date = moment(this.filterSettings.incorporation_end_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter re_registration start date (If required)
-                if( this.filterByReRegistrationDate && this.filterDates.re_registration_start_date ){
-                    url_append.re_registration_start_date = moment(this.filterDates.re_registration_start_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByReRegistrationDate && this.filterSettings.re_registration_start_date ){
+                    url_append.re_registration_start_date = moment(this.filterSettings.re_registration_start_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter re_registration end date (If required)
-                if( this.filterByReRegistrationDate && this.filterDates.re_registration_end_date ){
-                    url_append.re_registration_end_date = moment(this.filterDates.re_registration_end_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByReRegistrationDate && this.filterSettings.re_registration_end_date ){
+                    url_append.re_registration_end_date = moment(this.filterSettings.re_registration_end_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter annual return last filed start date (If required)
-                if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_start_date ){
-                    url_append.annual_return_last_filed_start_date = moment(this.filterDates.annual_return_last_filed_start_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByARLastFiledDate && this.filterSettings.annual_return_last_filed_start_date ){
+                    url_append.annual_return_last_filed_start_date = moment(this.filterSettings.annual_return_last_filed_start_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter annual return last filed end date (If required)
-                if( this.filterByARLastFiledDate && this.filterDates.annual_return_last_filed_end_date ){
-                    url_append.annual_return_last_filed_end_date = moment(this.filterDates.annual_return_last_filed_end_date).format('YYYY-MM-DD 00:00:00');
+                if( this.filterByARLastFiledDate && this.filterSettings.annual_return_last_filed_end_date ){
+                    url_append.annual_return_last_filed_end_date = moment(this.filterSettings.annual_return_last_filed_end_date).format('YYYY-MM-DD 00:00:00');
                 }
 
                 //  Set the filter annual return filled month (If required)
-                if( this.filterByARFillingMonth && this.filterDates.annual_return_filing_month ){
-                    url_append.annual_return_filing_month = this.filterDates.annual_return_filing_month;
+                if( this.filterByARFillingMonth && this.filterSettings.annual_return_filing_month ){
+                    url_append.annual_return_filing_month = this.filterSettings.annual_return_filing_month;
                 }
 
                 url_append.per_page = this.perPage;
@@ -1089,6 +1156,12 @@
             },
             checkIfselectableRow(row, index){
                 return !this.isBulkUpdating;
+            },
+            handleFilter(){
+                //  Clear the search
+                this.searchWord = '';
+
+                this.fetchCompanies();
             },
             fetchCompanies(){
 
@@ -1210,6 +1283,12 @@
                 });
             },
             setTableData(companies){
+
+                console.log('this.companies');
+                console.log(this.companies);
+                console.log('this.companies.data');
+                console.log(this.companies.data);
+
                 if( companies ){
                     this.tableData = companies.map(function(company){
                         return {
@@ -1231,6 +1310,19 @@
                             annual_return_filing_month: company.annual_return_filing_month,
                             annual_return_last_filed_date: company.annual_return_last_filed_date,
                             details: company.details,
+
+                            registered_office_address: company.registered_office_address,
+                            postal_address: company.postal_address,
+                            principal_place_of_business: company.principal_place_of_business,
+
+                            ownership_bundles: company.ownership_bundles,
+                            shareholders: company.shareholders,
+                            secretaries: company.secretaries,
+                            directors: company.directors,
+
+
+                            //  'registered_office_address', 'postal_address', 'principal_place_of_business',
+                            //  'ownership_bundles', 'directors', 'shareholders', 'secretary'
 
                             //  Attributes
                             is_registered: company.is_registered.status,
@@ -1258,6 +1350,17 @@
 
                 }
             },
+            setSearchTypeFromUrl(){
+
+                if( route().params ){
+
+                    if( route().params.search_type ){
+
+                        this.searchType = route().params.search_type;
+                    }
+
+                }
+            },
             setFiltersFromUrl(){
 
                 if( route().params ){
@@ -1269,16 +1372,16 @@
 
                 }
             },
-            setFilterDatesFromUrl(){
+            setFilterSettingsFromUrl(){
 
-                var date_names = Object.keys(this.filterDates);
+                var properties = Object.keys(this.filterSettings);
 
-                date_names.forEach(date_name => {
+                properties.forEach(property => {
 
                     //  If the date name exists on the url params
-                    if( route().params[date_name] ){
+                    if( route().params[property] ){
 
-                        this.filterDates[date_name] = route().params[date_name];
+                        this.filterSettings[property] = route().params[property];
 
                     }
                 });
@@ -1307,14 +1410,10 @@
             },
         },
         created(){
-            console.log('this.companies');
-            console.log(this.companies);
-            console.log('this.companiesUrlQueryParamsAsString');
-            console.log(this.companiesUrlQueryParamsAsString);
-
             this.setSearchFromUrl();
+            this.setSearchTypeFromUrl();
             this.setFiltersFromUrl();
-            this.setFilterDatesFromUrl();
+            this.setFilterSettingsFromUrl();
             this.setSortByFromUrl();
             this.setSortByTypeFromUrl();
             this.setTableData(this.companies.data);

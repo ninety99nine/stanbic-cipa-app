@@ -55,6 +55,13 @@ Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth
 
 });
 
+//  Ownership Bundles Resource Routes
+Route::prefix('ownership')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', 'OwnershipBundleController@getOwnershipBundles')->name('ownership-bundles');
+
+});
+
 // Route for view/blade file.
 Route::get('importExportView', [ExcelController::class, 'importExportView'])->name('importExportView');
 // Route for export/download tabledata to .csv, .xls or .xlsx

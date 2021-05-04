@@ -10,6 +10,17 @@ use Maatwebsite\Excel\Facades\Excel;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
 use App\Http\Resources\Company as CompanyResource;
 use App\Http\Resources\Companies as CompaniesResource;
+use BrightNucleus\CountryCodes\Country as CountryCodes;
+use App\Models\Address;
+use App\Models\Business;
+use App\Models\Company;
+use App\Models\Country;
+use App\Models\Director;
+use App\Models\Individual;
+use App\Models\OwnershipBundle;
+use App\Models\Region;
+use App\Models\Secretary;
+use App\Models\Shareholder;
 
 trait CompanyTraits
 {
@@ -234,8 +245,10 @@ trait CompanyTraits
 
             }else{
 
-                $fields = collect((new \App\Models\Company )->getFillable())->reject(function ($value, $key) {
-                                return $value == 'details';
+                //  Fields we want to select from the database (All fields except the details field)
+                $fields = collect(array_merge(['id', 'created_at', 'updated_at'], (new \App\Models\Company )->getFillable()))
+                            ->reject(function ($value) {
+                                return in_array($value, ['details']);
                             })->toArray();
 
                 //  Get the companies
@@ -246,8 +259,18 @@ trait CompanyTraits
             //  Filter the companies
             $companies = $this->filterResources($data, $companies);
 
-            //  Sort the companies
-            $companies = $this->sortResources($data, $companies);
+            /**
+             *  If we have an Eloquent Builder, then we can continue sorting.
+             *  Sometimes we may have a Collection instead of an Eloquent
+             *  Builder e.g After searching directly with CIPA. In this
+             *  case we can't sort the result.
+             */
+            if( $companies instanceof \Illuminate\Database\Eloquent\Builder ){
+
+                //  Sort the companies
+                $companies = $this->sortResources($data, $companies);
+
+            }
 
             //  Return companies
             return $this->collectionResponse($data, $companies, $paginate);
@@ -267,7 +290,21 @@ trait CompanyTraits
         //  If we need to search for specific companies
         if ( isset($data['search']) && !empty($data['search']) ) {
 
-            $companies = $this->filterResourcesBySearch($data, $companies);
+            if( isset($data['search_type']) && !empty($data['search_type']) ){
+
+                //  Searching within application database
+                if( $data['search_type'] == 'internal' ){
+
+                    $companies = $this->filterResourcesBySearch($data, $companies);
+
+                //  Searching outside application database (Searching within CIPA)
+                }elseif( $data['search_type'] == 'external' ){
+
+                    $companies = $this->requestCipaSearch($data);
+
+                }
+
+            }
 
         }elseif ( isset($data['status']) && !empty($data['status']) ) {
 
@@ -284,7 +321,7 @@ trait CompanyTraits
      */
     public function filterResourcesBySearch($data = [], $companies)
     {
-        //  Set the search term e.g "Bravo Cinema"
+        //  Set the search term e.g "BW00001234567"
         $search_term = $data['search'] ?? null;
 
         //  Return searched companies otherwise original companies
@@ -693,6 +730,831 @@ trait CompanyTraits
     {
         try {
 
+            //  Request the CIPA company template structure
+            $template = $this->requestCipaTemplate($this->uin);
+
+            //  If we have the company template (Means company was found on CIPA side)
+            if( $template ){
+
+                //  Update the current company instance
+                $this->update($template);
+
+                //  Create or update the company registered office address
+                $this->createOrUpdateResourceAddress(
+                    $template['registered_office_address'],
+                    'registered_office_address', $this->id, $this->resource_type
+                );
+
+                //  Create or update the company postal address
+                $this->createOrUpdateResourceAddress(
+                    $template['postal_address'],
+                    'postal_address', $this->id, $this->resource_type
+                );
+
+                //  Create or update the principal place of business address
+                $this->createOrUpdateResourceAddress(
+                    $template['principal_place_of_business'],
+                    'principal_place_of_business', $this->id, $this->resource_type
+                );
+
+                //  If this company is marked as a client
+                if( $this->marked_as_client ){
+
+                    \Illuminate\Support\Facades\Log::debug('DO directors');
+
+                    //  Create or update the directors
+                    $this->createOrUpdateResourceDirectors($template['directors']);
+
+                    \Illuminate\Support\Facades\Log::debug('DO shareholders');
+
+                    //  Create or update the shareholders
+                    $this->createOrUpdateResourceShareholders($template['shareholders']);
+
+                    \Illuminate\Support\Facades\Log::debug('DO ownership bundles');
+
+                    //  Create or update the ownership bundles
+                    $this->createOrUpdateResourceOwnershipBundles($template['ownership_bundles']);
+
+                    \Illuminate\Support\Facades\Log::debug('DO secretaries');
+
+                    //  Create or update the secretaries
+                    $this->createOrUpdateResourceSecretaries($template['secretaries']);
+
+                }
+
+                //  If we should return an instance
+                if( $return ){
+
+                    //  Return a fresh instance
+                    return $this->fresh();
+
+                }
+
+            //  If we don't have the company template (Means company was not found on CIPA side)
+            }else{
+
+                //  Set all fields to null
+                $template = collect($this->getFillable())->mapWithKeys(function ($field) {
+                    return [$field => null];
+                })->all();
+
+                //  Mark the company status as Not Found
+                $template = array_merge($template, [
+                    'uin' => $this->uin,
+                    'company_status' => 'Not Found',
+                    'cipa_updated_at' => \Carbon\Carbon::now()
+                ]);
+
+                //  Mark the company status as Not Found
+                $this->update($template);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method creates or updates a company address
+     */
+    public function createOrUpdateResourceAddress($data, $type, $owner_id, $owner_type)
+    {
+        if( !empty($data) ){
+
+            /****************************************
+             *  CREATE / UPDATE REGION              *
+             ****************************************/
+
+             // If the region code is specified
+            if( !empty($data['region_code']) ){
+
+                $region = $this->createOrUpdateResourceAddressRegion($data['region_code']);
+
+            }
+
+            /****************************************
+             *  CREATE / UPDATE COUNTRY             *
+             ****************************************/
+
+             // If the country code is specified
+            if( !empty($data['country']) ){
+
+                $country = $this->createOrUpdateResourceAddressCountry($data['country']);
+
+            }
+
+            $identifiers = [
+                'type' => $type,
+                'owner_id' => $owner_id,
+                'owner_type' => $owner_type,
+            ];
+
+            //  Merge the address type and ownership details
+            $template = array_merge(
+                $data,
+                $identifiers,
+                [
+                    'country_id' => $country->id ?? null,
+                    'region_id' => $region->id ?? null
+                ]
+            );
+
+            Address::updateOrCreate(
+                /**
+                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                 *
+                 *  Where cipa_identifier = $template['cipa_identifier']
+                 *
+                 *  But the identifier keeps changing value so we must use the following instead:
+                 *
+                 *  Where type = $template['type'] and
+                 *  Where owner_id = $template['owner_id'] and
+                 *  Where owner_type = $template['owner_type']
+                 */
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                $template
+
+            );
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates an address region
+     */
+    public function createOrUpdateResourceAddressRegion($region_code)
+    {
+        return Region::updateOrCreate(
+
+            //  Where code = $region_code
+            ['code' => $region_code],
+
+            //  Update or Create a record with this Array of key/values
+            ['code' => $region_code]
+
+        );
+    }
+
+    /**
+     *  This method creates or updates an address country
+     */
+    public function createOrUpdateResourceAddressCountry($country_code)
+    {
+        return Country::updateOrCreate(
+
+            //  Where code = $country_code
+            ['code' => $country_code],
+
+            //  Update or Create a record with this Array of key/values
+            [
+                'code' => $country_code,
+                'name' => (new \App\Models\Country)->getCountryNameFromCode($country_code)
+            ]
+
+        );
+    }
+
+    /**
+     *  This method creates or updates directors
+     */
+    public function createOrUpdateResourceDirectors($directors = [])
+    {
+        //  If we have a list of directors
+        if( !empty($directors) ){
+
+            //  Foreach director
+            foreach ($directors as $director) {
+
+                /****************************************
+                 *  CREATE / UPDATE INDIVIDUAL          *
+                 ****************************************/
+
+                $individual = $this->createOrUpdateResourceIndividual($director);
+
+                /****************************************
+                 *  CREATE / UPDATE DIRECTOR            *
+                 ****************************************/
+
+                $identifiers = [
+                    'individual_id' => $individual->id,
+                    'director_of_company_id' => $this->id
+                ];
+
+                //  Set a Director template
+                $director_template = array_merge(
+                    $director,
+                    $identifiers
+                );
+
+                Director::updateOrCreate(
+                    /**
+                     *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                     *
+                     *  Where cipa_identifier = $director_template['cipa_identifier']
+                     *
+                     *  But the identifier keeps changing value so we must use the following instead:
+                     *
+                     *  Where owner_id = $director_template['individual_id'] and
+                     *  Where owner_type = $director_template['director_of_company_id']
+                     */
+                    $identifiers,
+
+                    //  Update or Create a record with this Array of key/values
+                    $director_template
+                );
+
+            }
+
+        }
+    }
+
+    /**
+     *  This method creates or updates shareholders
+     */
+    public function createOrUpdateResourceShareholders($shareholders)
+    {
+        //  If we have a list of shareholders
+        if( !empty($shareholders) ){
+
+            //  Foreach shareholder
+            foreach ($shareholders as $shareholder) {
+
+                //  If this is an individual shareholder
+                if( !is_null($shareholder['individual_shareholder']) ){
+
+                    /********************************************
+                     *  CREATE / UPDATE INDIVIDUAL SHAREHOLDER  *
+                     *******************************************/
+
+                    $this->createOrUpdateResourceIndividualShareholder($shareholder['individual_shareholder']);
+
+                //  If this is an entity shareholder
+                }elseif( !is_null($shareholder['entity_shareholder']) ){
+
+                    /********************************************
+                     *  CREATE / UPDATE ENTITY SHAREHOLDER      *
+                     *******************************************/
+
+                    $this->createOrUpdateResourceEntityShareholder($shareholder['entity_shareholder']);
+
+                }
+            }
+        }
+    }
+
+    /**
+     *  This method creates or updates individual shareholder
+     */
+    public function createOrUpdateResourceIndividualShareholder($individual_shareholder)
+    {
+        /****************************************
+         *  CREATE / UPDATE INDIVIDUAL          *
+         ****************************************/
+
+        $individual = $this->createOrUpdateResourceIndividual($individual_shareholder);
+
+        if( $individual ){
+
+            /****************************************
+             *  CREATE / UPDATE SHAREHOLDER         *
+             ****************************************/
+
+            $identifiers = [
+                'owner_id' => $individual->id,
+                'owner_type' => $individual->resource_type,
+                'shareholder_of_company_id' => $this->id
+            ];
+
+            $individual_shareholder_template = array_merge(
+                $individual_shareholder,
+                $identifiers
+            );
+
+            Shareholder::updateOrCreate(
+                /**
+                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                 *
+                 *  Where cipa_identifier = $individual_shareholder_template['cipa_identifier']
+                 *
+                 *  But the identifier keeps changing value so we must use the following instead:
+                 *
+                 *  Where owner_id = $individual_shareholder_template['owner_id'] and
+                 *  Where owner_type = $individual_shareholder_template['owner_type'] and
+                 *  Where shareholder_of_company_id = $individual_shareholder_template['shareholder_of_company_id']
+                 */
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                $individual_shareholder_template
+
+            );
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates entity (Company / Business) shareholder
+     */
+    public function createOrUpdateResourceEntityShareholder($entity_shareholder)
+    {
+        /****************************************
+         *  CREATE / UPDATE ENTITY              *
+         ****************************************/
+
+        $entity = $this->createOrUpdateResourceEntity($entity_shareholder);
+
+        if( $entity ){
+
+            /****************************************
+             *  CREATE / UPDATE SHAREHOLDER         *
+             ****************************************/
+
+            $identifiers = [
+                'owner_id' => $entity->id,
+                'owner_type' => $entity->resource_type,
+                'shareholder_of_company_id' => $this->id
+            ];
+
+            $entity_shareholder_template = array_merge(
+                $entity_shareholder,
+                $identifiers
+            );
+
+            Shareholder::updateOrCreate(
+                /**
+                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                 *
+                 *  Where cipa_identifier = $entity_shareholder_template['cipa_identifier']
+                 *
+                 *  But the identifier keeps changing value so we must use the following instead:
+                 *
+                 *  Where owner_id = $entity_shareholder_template['owner_id'] and
+                 *  Where owner_type = $entity_shareholder_template['owner_type'] and
+                 *  Where shareholder_of_company_id = $entity_shareholder_template['shareholder_of_company_id']
+                 */
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                $entity_shareholder_template
+
+            );
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates secretaries
+     */
+    public function createOrUpdateResourceSecretaries($secretaries)
+    {
+        //  If we have a list of secretaries
+        if( !empty($secretaries) ){
+
+            //  Foreach secretary
+            foreach ($secretaries as $secretary) {
+
+                //  If this is an individual secretary
+                if( !is_null($secretary['individual_secretary']) ){
+
+                    /********************************************
+                     *  CREATE / UPDATE INDIVIDUAL SECRETARY    *
+                     *******************************************/
+
+                    $this->createOrUpdateResourceIndividualSecretary($secretary['individual_secretary']);
+
+                //  If this is an entity secretary
+                }elseif( !is_null($secretary['entity_secretary']) ){
+
+                    /********************************************
+                     *  CREATE / UPDATE ENTITY SECRETARY        *
+                     *******************************************/
+
+                    $this->createOrUpdateResourceEntitySecretary($secretary['entity_secretary']);
+
+                }
+            }
+        }
+    }
+
+    /**
+     *  This method creates or updates individual secretary
+     */
+    public function createOrUpdateResourceIndividualSecretary($individual_secretary)
+    {
+        /****************************************
+         *  CREATE / UPDATE INDIVIDUAL          *
+         ****************************************/
+
+        $individual = $this->createOrUpdateResourceIndividual($individual_secretary);
+
+        if( $individual ){
+
+            /****************************************
+             *  CREATE / UPDATE SECRETARY         *
+             ****************************************/
+
+            $identifiers = [
+                'owner_id' => $individual->id,
+                'owner_type' => $individual->resource_type,
+                'secretary_of_company_id' => $this->id
+            ];
+
+            $individual_secretary_template = array_merge(
+                $individual_secretary,
+                $identifiers
+            );
+
+            Secretary::updateOrCreate(
+                /**
+                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                 *
+                 *  Where cipa_identifier = $individual_secretary_template['cipa_identifier']
+                 *
+                 *  But the identifier keeps changing value so we must use the following instead:
+                 *
+                 *  Where owner_id = $individual_secretary_template['owner_id'] and
+                 *  Where owner_type = $individual_secretary_template['owner_type'] and
+                 *  Where secretary_of_company_id = $individual_secretary_template['secretary_of_company_id']
+                 */
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                $individual_secretary_template
+
+            );
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates entity (Company / Business) secretary
+     */
+    public function createOrUpdateResourceEntitySecretary($entity_secretary)
+    {
+        /****************************************
+         *  CREATE / UPDATE ENTITY              *
+         ****************************************/
+
+        $entity = $this->createOrUpdateResourceEntity($entity_secretary);
+
+        if( $entity ){
+
+            /****************************************
+             *  CREATE / UPDATE SECRETARY         *
+             ****************************************/
+
+            $identifiers = [
+                'owner_id' => $entity->id,
+                'owner_type' => $entity->resource_type,
+                'secretary_of_company_id' => $this->id
+            ];
+
+            $entity_secretary_template = array_merge(
+                $entity_secretary,
+                $identifiers
+            );
+
+            Secretary::updateOrCreate(
+                /**
+                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                 *
+                 *  Where cipa_identifier = $entity_secretary_template['cipa_identifier']
+                 *
+                 *  But the identifier keeps changing value so we must use the following instead:
+                 *
+                 *  Where owner_id = $entity_secretary_template['owner_id'] and
+                 *  Where owner_type = $entity_secretary_template['owner_type'] and
+                 *  Where secretary_of_company_id = $entity_secretary_template['secretary_of_company_id']
+                 */
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                $entity_secretary_template
+
+            );
+
+        }
+
+    }
+
+    /**
+     *  This method creates or updates ownership bundles
+     */
+    public function createOrUpdateResourceOwnershipBundles($ownership_bundles)
+    {
+        //  If we have a list of ownership bundles
+        if( !empty($ownership_bundles) ){
+
+            //  Calculate the total number of shares
+            $total_shares = collect($ownership_bundles)->map(function($ownership_bundle){
+                return $ownership_bundle['number_of_shares'];
+            })->sum();
+
+            //  Get the related shareholders and their owners
+            $shareholders = Shareholder::where('shareholder_of_company_id', $this->id)->with('owner')->get();
+
+            //  Get the related directors and their owners
+            $directors = Director::where('director_of_company_id', $this->id)->with('individual')->get();
+
+            //  Foreach ownership bundle
+            foreach ($ownership_bundles as $ownership_bundle) {
+
+                /****************************************
+                 *  CREATE / UPDATE OWNERSHIP BUNDLE    *
+                 ****************************************/
+
+                $shareholder_name = $ownership_bundle['owners']['owner']['shareholder_name'];
+
+                //  Find the matching shareholder
+                $matched_shareholder = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
+
+                    \Illuminate\Support\Facades\Log::debug('$shareholder->owner_type: '.$shareholder->owner_type);
+
+                    //  If the owner is a company or business
+                    if( in_array($shareholder->owner_type, ['company', 'business']) ){
+
+                        \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->name);
+
+                        return (trim($shareholder_name) == $shareholder->owner->name);
+
+                    //  If the owner is an individual
+                    }elseif( $shareholder->owner_type == 'individual' ){
+
+                        \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->full_name);
+
+                        return (trim($shareholder_name) == $shareholder->owner->full_name);
+
+                    }
+
+                    return false;
+
+                });
+
+                //  Retrieve the matching shareholder id
+                $shareholder_id = count($matched_shareholder) ? $matched_shareholder->first()->id : null;
+
+                //  Set the is_director to "n" for "no" by default
+                $is_director = 'n';
+
+                foreach ($directors as $director) {
+
+                    //  If we have the linked individual
+                    if( $director->individual ){
+
+                        //  If the shareholder name matches the linked individual full name
+                        if( (trim($shareholder_name) == $director->individual->full_name) ){
+
+                            //  If the director is a current director
+                            if( is_null($director->ceased_date) ){
+
+                                //  Set the is_director to "y" for "yes" (Current director)
+                                $is_director = 'y';
+
+                            //  If the director is a former director
+                            }else{
+
+                                //  Set the is_director to "f" for "former" (Former director)
+                                $is_director = 'f';
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                $identifiers = [
+                    'shareholder_name' => $shareholder_name,
+                    'shareholder_of_company_id' => $this->id
+                ];
+
+                $ownership_bundle_template = array_merge(
+                    $ownership_bundle,
+                    $identifiers,
+                    [
+                        'is_director' => $is_director,
+                        'total_shares' => $total_shares,
+                        'shareholder_id' => $shareholder_id,
+                        'percentage_of_shares' => round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2)
+                    ]
+                );
+
+                //  Create / Update the Ownership Bundle
+                OwnershipBundle::updateOrCreate(
+                    /**
+                     *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                     *
+                     *  Where cipa_identifier = $ownership_bundle_template['cipa_identifier']
+                     *
+                     *  But the identifier keeps changing value so we must use the following instead:
+                     *
+                     *  Where shareholder_name = $ownership_bundle_template['shareholder_name'] and
+                     *  Where shareholder_of_company_id = $ownership_bundle_template['shareholder_of_company_id']
+                     */
+                    $identifiers,
+
+                    //  Update or Create a record with this Array of key/values
+                    $ownership_bundle_template
+
+                );
+
+            }
+        }
+    }
+
+    /**
+     *  This method creates or updates individual
+     */
+    public function createOrUpdateResourceIndividual($individual_template)
+    {
+
+        /****************************************
+         *  CREATE / UPDATE INDIVIDUAL          *
+         ****************************************/
+
+        $identifiers = [
+            'first_name' => $individual_template['individual_name']['first_name'],
+            'middle_names' => $individual_template['individual_name']['middle_names'],
+            'last_name' => $individual_template['individual_name']['last_name']
+        ];
+
+        //  Create / Update the Individual
+        $individual = Individual::updateOrCreate(
+            /**
+             *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+             *
+             *  Where cipa_identifier = $individual_template['individual_name']['cipa_identifier']]
+             *
+             *  But the identifier keeps changing value so we must use the following instead:
+             *
+             *  Where first_name = $individual_template['individual_name']['first_name'] and
+             *  Where middle_names = $individual_template['individual_name']['middle_names'] and
+             *  Where last_name = $individual_template['individual_name']['last_name']
+             */
+            $identifiers,
+
+            //  Update or Create a record with this Array of key/values
+            $individual_template['individual_name']
+
+        );
+
+        //  If we have the individual residential address
+        if( !empty($individual_template['residential_address']) ){
+
+            //  Create or update the individual residential address
+            $this->createOrUpdateResourceAddress(
+                $individual_template['residential_address'],
+                'residential_address', $individual->id, $individual->resource_type
+            );
+
+        }
+
+        //  If we have the individual postal address
+        if( !empty($individual_template['postal_address']) ){
+
+            //  Create or update the individual postal address
+            $this->createOrUpdateResourceAddress(
+                $individual_template['postal_address'],
+                'postal_address', $individual->id, $individual->resource_type
+            );
+
+        }
+
+        return $individual;
+    }
+
+    /**
+     *  This method creates or updates entity (Company / Business)
+     */
+    public function createOrUpdateResourceEntity($entity_template)
+    {
+        //  If we have a UIN, then this is a Company
+        if( !is_null($entity_template['uin']) ){
+
+            /****************************************
+             *  CREATE / UPDATE COMPANY             *
+             ****************************************/
+
+            $identifiers = [
+                'uin' => $entity_template['uin']
+            ];
+
+            //  Create / Update the Company
+            $entity = Company::updateOrCreate(
+
+                //  Where uin = $uin
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                [
+                    'uin' => $entity_template['uin'],
+                    'name' => $entity_template['company_name']
+                ]
+
+            );
+
+        //  If we don't have a UIN, then this is a Business
+        }else{
+
+            /****************************************
+             *  CREATE / UPDATE BUSINESS            *
+             ****************************************/
+
+            $identifiers = [
+                'name' => $entity_template['company_name']
+            ];
+
+            //  Create / Update the Business
+            $entity = Business::updateOrCreate(
+
+                //  Where uin = $uin
+                $identifiers,
+
+                //  Update or Create a record with this Array of key/values
+                ['name' => $entity_template['company_name']]
+            );
+
+        }
+
+        //  If we have the company/business registered office address
+        if( !empty($entity_template['registered_office_address']) ){
+
+            //  Create or update the company/business registered office address
+            $this->createOrUpdateResourceAddress(
+                $entity_template['registered_office_address'],
+                'registered_office_address', $entity->id, $entity->resource_type
+            );
+
+        }
+
+        //  If we have the company/business postal address
+        if( !empty($entity_template['postal_address']) ){
+
+            //  Create or update the company/business postal address
+            $this->createOrUpdateResourceAddress(
+                $entity_template['postal_address'],
+                'postal_address', $entity->id, $entity->resource_type
+            );
+
+        }
+
+        return $entity;
+    }
+
+    /**
+     *  This method searches the CIPA database for a single company matching the given search term
+     */
+    public function requestCipaSearch($data = [])
+    {
+        try {
+
+            //  Extract the Request Object data (CommanTraits)
+            $data = $this->extractRequestData($data);
+
+            //  Set the search term e.g "BW00001234567"
+            $search_term = $data['search'];
+
+            //  Request the CIPA company template structure
+            $template = $this->requestCipaTemplate($search_term);
+
+            //  If we have the company template (Means company was found on CIPA side)
+            if( $template ){
+
+                //  Return a Collection of the Company Eloquent Model (Created on the fly - Not stored in database)
+                return collect(new \App\Models\Company($template));
+
+            //  If we don't have the company template (Means company was not found on CIPA side)
+            }else{
+
+                //  Return an Empty Collection
+                return collect(new \App\Models\Company);
+
+            }
+
+        } catch (\Exception $e) {
+
+            throw($e);
+
+        }
+    }
+
+    /**
+     *  This method returns the data template of a single company from CIPA
+     */
+    public function requestCipaTemplate($uin)
+    {
+        try {
+
             //  Set Auth Credentials
             $username = 'apiBursR2bc6JhrY1iyFVQNWdoZ845H';
             $password = '15EKveY1US572yrycjaw5zoBBim1NQpH';
@@ -703,7 +1565,7 @@ trait CompanyTraits
             // Run API Call With Basic Authentication
             $cipaCompany = Soap::to($url)
                                 ->withBasicAuth($username, $password)
-                                    ->viewCompanyWS(['TxnBusinessIdentifier' => $this->uin]);
+                                    ->viewCompanyWS(['TxnBusinessIdentifier' => $uin]);
 
             //  If we have the company details
             if( isset( $cipaCompany->response ) ){
@@ -715,90 +1577,44 @@ trait CompanyTraits
                     'cipa_updated_at' => \Carbon\Carbon::now()
                 ];
 
-                //  List of company fields we want to capture
                 $cipaCompanyFields = [
-                    'Info', 'CompanyName', 'CompanyStatus', 'Exempt', 'ForeignCompany', 'CompanyType', 'CompanySubType',
-                    'IncorporationDate', 'ReRegistrationDate', 'OldCompanyNumber', 'DissolutionDate', 'OwnConstitutionYn',
-                    'BusinessSector', 'AnnualReturnFilingMonth', 'ARLastFiledDate'
-                ];
-
-                $changeCompanyFields = [
+                    'Info' => 'info',
                     'CompanyName' => 'name',
-                    'ARLastFiledDate' => 'annual_return_last_filed_date'
+                    'CompanyStatus' => 'company_status',
+                    'Exempt' => 'exempt',
+                    'ForeignCompany' => 'foreign_company',
+                    'CompanyType' => 'company_type',
+                    'CompanySubType' => 'company_sub_type',
+                    'IncorporationDate' => 'incorporation_date',
+                    'ReRegistrationDate' => 're_registration_date',
+                    'OldCompanyNumber' => 'old_company_number',
+                    'DissolutionDate' => 'dissolution_date',
+                    'OwnConstitutionYn' => 'own_constitution_yn',
+                    'BusinessSector' => 'business_sector',
+                    'AnnualReturnFilingMonth' => 'annual_return_filing_month',
+                    'ARLastFiledDate' => 'annual_return_last_filed_date',
+
+                    'RegisteredOfficeAddressDetail.RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
+                    'PostalAddressDetail.PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                    'PrincipalPlaceOfBusinessDetail.PrincipalPlaceOfBusiness' => $this->cipaAddressFieldsTemplate('principal_place_of_business'),
+
+                    'OwnershipBundles.OwnershipBundle' => $this->cipaOwnershipBundlesFieldsTemplate(),
+                    'DirectorDetails.IndividualDirector' => $this->cipaDirectorDetailsFieldsTemplate(),
+                    'ShareholderDetails.Shareholder' => $this->cipaShareholderDetailsFieldsTemplate(),
+                    'SecretaryDetails.Secretary' => $this->cipaSecretaryDetailsFieldsTemplate(),
                 ];
 
-                //  List of company fields that should be treated as dates
-                $cipaCompanyDates = ['IncorporationDate', 'ReRegistrationDate', 'DissolutionDate', 'ARLastFiledDate'];
+                $template = $this->makeTemplateFromCipaFields($template, $cipaCompanyFields, $cipaCompany, $this->getDates());
 
-                foreach($cipaCompanyFields as $cipaCompanyField){
-
-                    //  If the field exists on the comapny record
-                    if( isset($cipaCompany->{$cipaCompanyField}) ){
-
-                        //  If the field is empty (Is equal to an empty Object {})
-                        if( $cipaCompany->{$cipaCompanyField} == new \stdClass() ){
-
-                            //  Cconvert to Null
-                            $cipaCompany->{$cipaCompanyField} = null;
-
-                        }
-
-                        //  If exists in Array of names to change
-                        if( array_key_exists($cipaCompanyField, $changeCompanyFields) ){
-
-                            //  Set the database field e.g $db_field = $changeCompanyFields['CompanyName']
-                            $db_field = $changeCompanyFields[ $cipaCompanyField ];
-
-                        //  If not Array e.g $cipaCompanyField = IncorporationDate
-                        }else{
-
-                            //  Convert to database field e.g "IncorporationDate" to "incorporation_date"
-                            $db_field = Str::snake($cipaCompanyField);
-
-                        }
-
-                        //  If this field is empty
-                        if( $cipaCompany->{$cipaCompanyField} == null ){
-
-                            //  Capture field and value
-                            $template[$db_field] = null;
-
-                        //  If the given field is a date
-                        }elseif( in_array($cipaCompany->{$cipaCompanyField}, $cipaCompanyDates) ){
-
-                            //  Convert to valid date and capture field and value
-                            $template[$db_field] = \Carbon\Carbon::parse($cipaCompany->{$cipaCompanyField}->Value)->format('Y-m-d H:i:s');
-
-                        }else{
-
-                            //  Capture field and value
-                            $template[$db_field] = $cipaCompany->{$cipaCompanyField}->Value;
-
-                        }
-
-                    }
-
-                }
-
-                $this->update($template);
-
-                //  If we should return an instance
-                if( $return ){
-
-                    //  Return a fresh instance
-                    return $this->fresh();
-
-                }
+                //  Return the company template
+                return $template;
 
             }else{
 
-                //  Mark the company status as Not Found
-                $this->update([
-                    'company_status' => 'Not Found',
-                    'cipa_updated_at' => \Carbon\Carbon::now()
-                ]);
+                //  Return null for company not found
+                return null;
 
-        }
+            }
 
         } catch (\Exception $e) {
 
@@ -806,6 +1622,436 @@ trait CompanyTraits
 
         }
     }
+
+    /**
+     *  This method generates address template structure
+     */
+    public function cipaAddressFieldsTemplate($name = null)
+    {
+        return [
+            'name' => $name,                                //  Make sure this is the new name
+            'dates' => ['start_date', 'end_date'],          //  Convert the following into dates
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+                'CareOf' => 'care_of',
+                'Line1' => 'line_1',
+                'Line2' => 'line_2',
+                'RegionCode' => 'region_code',
+                'PostCode' => 'post_code',
+                'Country' => 'country',
+                'StartDate' => 'start_date',
+                'EndDate' => 'end_date'
+            ]
+        ];
+    }
+
+    /**
+     *  This method generates individual name template structure
+     */
+    public function cipaIndividualNameFieldsTemplate()
+    {
+        return [
+            'name' => 'individual_name',
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+                'FirstName' => 'first_name',
+                'MiddleNames' => 'middle_names',
+                'LastName' => 'last_name'
+            ]
+        ];
+    }
+
+    /**
+     *  This method generates ownership bundles template structure
+     */
+    public function cipaOwnershipBundlesFieldsTemplate()
+    {
+        return [
+            'name' => 'ownership_bundles',
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+                'NumberOfShares' => 'number_of_shares',
+                'OwnershipType' => 'ownership_type',
+                'Owners' => [
+                    'name' => 'owners',
+                    'fields' => [
+                        'Owner' => [
+                            'name' => 'owner',
+                            'fields' => [
+                                'identifier' => 'cipa_identifier',
+                                'ShareholderName' => 'shareholder_name'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+    }
+
+    /**
+     *  This method generates directors template structure
+     */
+    public function cipaDirectorDetailsFieldsTemplate()
+    {
+        return [
+            'name' => 'directors',
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+                'IndividualName' => $this->cipaIndividualNameFieldsTemplate(),
+                'ResidentialAddress' => $this->cipaAddressFieldsTemplate('residential_address'),
+                'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                'AppointmentDate' => 'appointment_date',
+                'CeasedDate' => 'ceased_date'
+            ],
+            'dates' => ['appointment_date', 'ceased_date']
+        ];
+    }
+
+    /**
+     *  This method generates shareholders template structure
+     */
+    public function cipaShareholderDetailsFieldsTemplate()
+    {
+        return [
+            'name' => 'shareholders',
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+
+                //  This can be an Individual Shareholder
+                'IndividualShareholder' => [
+                    'name' => 'individual_shareholder',
+                    'fields' => [
+                        'identifier' => 'cipa_identifier',
+                        'IndividualName' => $this->cipaIndividualNameFieldsTemplate(),
+                        'ResidentialAddress' => $this->cipaAddressFieldsTemplate('residential_address'),
+                        'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                        'AppointmentDate' => 'appointment_date',
+                        'CeasedDate' => 'ceased_date',
+                        'Nominee' => 'nominee'
+                    ],
+                    'dates' => ['appointment_date', 'ceased_date']
+                ],
+
+                //  This can be an Entity Shareholder e.g Company
+                'EntityShareholder' => [
+                    'name' => 'entity_shareholder',
+                    'fields' => [
+                        'identifier' => 'cipa_identifier',
+                        'UIN' => 'uin',
+                        'CompanyName' => 'company_name',
+                        'RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
+                        'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                        'AppointmentDate' => 'appointment_date',
+                        'CeasedDate' => 'ceased_date',
+                        'Nominee' => 'nominee'
+                    ],
+                    'dates' => ['appointment_date', 'ceased_date']
+                ],
+            ]
+        ];
+    }
+
+    /**
+     *  This method generates shareholders template structure
+     */
+    public function cipaSecretaryDetailsFieldsTemplate()
+    {
+        return [
+            'name' => 'secretaries',
+            'fields' => [
+                'identifier' => 'cipa_identifier',
+
+                //  This can be an Individual Secretary
+                'IndividualSecretary' => [
+                    'name' => 'individual_secretary',
+                    'fields' => [
+                        'identifier' => 'cipa_identifier',
+                        'IndividualName' => $this->cipaIndividualNameFieldsTemplate(),
+                        'ResidentialAddress' => $this->cipaAddressFieldsTemplate('residential_address'),
+                        'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                        'AppointmentDate' => 'appointment_date',
+                        'CeasedDate' => 'ceased_date'
+                    ],
+                    'dates' => ['appointment_date', 'ceased_date']
+                ],
+
+                //  This can be an 'Entity Secretary e.g Company
+                'EntitySecretary' => [
+                    'name' => 'entity_secretary',
+                    'fields' => [
+                        'identifier' => 'cipa_identifier',
+                        'UIN' => 'uin',
+                        'CompanyName' => 'company_name',
+                        'RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
+                        'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
+                        'AppointmentDate' => 'appointment_date',
+                        'CeasedDate' => 'ceased_date'
+                    ],
+                    'dates' => ['appointment_date', 'ceased_date']
+                ],
+            ]
+        ];
+    }
+
+    /**
+     *  This method generates templates from CIPA fields
+     */
+    public function makeTemplateFromCipaFields($template = [], $cipaFields, $cipaData, $dates = [])
+    {
+        foreach($cipaFields as $originalFieldName => $newFieldName){
+
+            /**
+             *  If the new field name is a type of Array e.g
+             *
+             *  'PostalAddressDetail.PostalAddress' => [
+             *      'name' => 'postal_address',
+             *      'fields' => $this->cipaAddressFieldsTemplate()
+             *  ]
+             *
+             *  Note that;
+             *
+             *  $originalFieldName = 'PostalAddressDetail.PostalAddress'
+             *
+             *  $newFieldName = [
+             *      'name' => 'postal_address',
+             *      'fields' => $this->cipaAddressFieldsTemplate()
+             *  ]
+             *
+             *  We must then extract the name and the sub template
+             */
+
+            //  Unset the $subFields and $subDates
+            unset($subFields);
+            unset($subDates);
+
+            if( is_array($newFieldName) ){
+
+                $newFieldName = $cipaFields[$originalFieldName]['name'];
+                $subFields = $cipaFields[$originalFieldName]['fields'];
+
+                if( isset($newFieldName['dates']) ){
+
+                    $subDates = $newFieldName['dates'];
+
+                }else{
+
+                    $subDates = [];
+
+                }
+
+            }
+
+            /**
+             *  $originalFieldName = "CompanyName" or "DirectorDetails.IndividualDirector"
+             *
+             *  $fields = ['CompanyName'] or ['DirectorDetails', 'IndividualDirector']
+             */
+            $fields = explode('.', $originalFieldName);
+
+            //  Set the field value to the entire company info { ... }
+            $fieldValue = $cipaData;
+
+            //  Foreach field
+            for ($i=0; $i < count($fields); $i++) {
+
+                //  The current field
+                $field = $fields[$i];
+
+                /**
+                 *  Check if the field exists:
+                 *
+                 *  1) isset( $cipaCompany->DirectorDetails ) = true/false
+                 *  2) isset( $cipaCompany->DirectorDetails->IndividualDirector ) = true/false
+                 *  ... e.t.c
+                 */
+                if( isset( $fieldValue->{$field} ) ){
+
+                    //  If the field value is empty (Is equal to an empty Object {})
+                    if( $fieldValue->{$field} == new \stdClass() ){
+
+                        //  Reset the field value to null since the field has no value
+                        $fieldValue = null;
+
+                    }else{
+
+                        /**
+                         *  Set the field value:
+                         *
+                         *  1) $fieldValue = $cipaCompany->DirectorDetails
+                         *  2) $fieldValue = $cipaCompany->DirectorDetails->IndividualDirector
+                         *  ... e.t.c
+                         *
+                         *  Most field values require that we target the "Value" property in order
+                         *  to retrieve the actual information for that given field, however this
+                         *  might not be necessary other fields e.g
+                         *
+                         *  Example 1: Just take the value as it is
+                         *
+                         *  {
+                         *      "someField" : "The value"
+                         *  }
+                         *
+                         *  Example 2: Target the "Value" field and extract the actual value
+                         *
+                         *  or with nested value
+                         *
+                         *  {
+                         *      "someField" : {
+                         *          Value: "The value"
+                         *      }
+                         *  }
+                         *
+                         *  Example 3: This will require that we use $subFields to properly re-structure
+                         *  the information then extract the values of each field appropriately. This
+                         *  is a more advanced structure.
+                         *
+                         *  {
+                         *      "someField" : {
+                         *          "anotherField1" : {
+                         *              Value: "The 1st value"
+                         *          },
+                         *          "anotherField2" : {
+                         *              Value: "The 2nd value"
+                         *          },
+                         *          "anotherField3" : {
+                         *              Value: "The 3rd value"
+                         *          }
+                         *      }
+                         *  }
+                         *
+                         *  or with
+                         *
+                         *  We must cater for both scenerios
+                         */
+
+                        //  Handle Example 2 scenerio - If we have the "Value" field then extract the actual value
+                        if( isset( $fieldValue->{$field}->Value ) ){
+
+                            $fieldValue = $fieldValue->{$field}->Value;
+
+                        }else{
+
+                            /** Handle Example 3 scenerio - If we have nested fields that we would like to also re-structure
+                             *  We need to make sure that we only access this part of the logic only if we are on the last
+                             *  loop. We can check this by the following logic ($i == (count($fields) - 1). We need to be
+                             *  on the last loop to target the final field on the chain e.g
+                             *
+                             *  $fields = ['someField', 'someField2', 'someField3'];
+                             *
+                             *  this translates to the following structure
+                             *
+                             *  someField->someField2->someField3
+                             *
+                             *  Making sure we are on the last loop means we don't run this logic on:
+                             *
+                             *  1) someField
+                             *  2) someField->someField2
+                             *
+                             *  But only run on the following
+                             *
+                             *  3) someField->someField2->someField3
+                             *
+                             *  Which is the last field to target i.e the last loop
+                             *
+                             */
+                            if( isset($subFields) && ($i == (count($fields) - 1)) ){
+
+                                //  Capture the data and convert from Object to Array
+                                $subFieldsValue = $fieldValue->{$field};
+
+                                /**
+                                 *  If this nested value is an Array, it means that we have multiple instances of the
+                                 *  same kind of resrouce e.g an Array of Directors or Shareholders. We must make a
+                                 *  template out of each instance.
+                                 */
+                                if( is_array($subFieldsValue) ){
+
+                                    //  Set the fieldValue as an empty Array
+                                    $fieldValue = [];
+
+                                    /**
+                                     *  Foreach $subFieldsValue e.g Foreach Director / Shareholder
+                                     *  Let us make a template using the data
+                                     */
+                                    foreach ($subFieldsValue as $singleSubFieldsValue) {
+
+                                        /**
+                                         *   $singleFieldValue is like a template of a single Director / Shareholder
+                                         */
+                                        $singleFieldValue = $this->makeTemplateFromCipaFields([], $subFields, $singleSubFieldsValue, $subDates);
+
+                                        /**
+                                         *   We must push this single Director / Shareholder with the rest of the others
+                                         */
+                                        array_push($fieldValue, $singleFieldValue);
+
+                                    }
+
+                                }else{
+
+                                    /** Its possible that we only had one Object { ... } representing a Director / Shareholder.
+                                     *  But we don't want to just return the  Object { ... } as it is. Infact we would like to
+                                     *  close the Object into an Array even if we only have one Object. Therefore if the field
+                                     *  name is "directors", "shareholders" or "secretaries" we must always return the Object
+                                     *  enclosed in an Array.
+                                     */
+
+                                     if( in_array($newFieldName, ['directors', 'shareholders', 'secretaries', 'ownership_bundles']) ){
+
+                                        $fieldValue = [
+                                            $this->makeTemplateFromCipaFields([], $subFields, $subFieldsValue, $subDates)
+                                        ];
+
+                                     }else{
+
+                                        $fieldValue = $this->makeTemplateFromCipaFields([], $subFields, $subFieldsValue, $subDates);
+
+                                     }
+
+                                }
+
+                            //  Handle Example 1 scenerio - If we have a simple value just take the value as it is
+                            }else{
+
+                                $fieldValue = $fieldValue->{$field};
+
+                            }
+
+                        }
+
+                    }
+
+                }else{
+
+                    //  Reset the field value to null since the field does not exist
+                    $fieldValue = null;
+
+                    //  Stop the loop
+                    break 1;
+
+                }
+
+            }
+
+            //  Check if the given field name must be cast into a date and we have a value available
+            if( in_array( $newFieldName, $dates ) && !empty($fieldValue)){
+
+                //  Convert value to date
+                $fieldValue = \Carbon\Carbon::parse($fieldValue)->format('Y-m-d H:i:s');
+
+            }
+
+            //  Capture the template field and value
+            $template[$newFieldName] = $fieldValue;
+
+            \Illuminate\Support\Facades\Log::debug($newFieldName .': '.json_encode($fieldValue));
+
+        }
+
+        return $template;
+    }
+
+
 
     /**
      *  This method checks permissions for creating a new resource
