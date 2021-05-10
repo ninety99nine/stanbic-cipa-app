@@ -12,6 +12,13 @@ class Individual extends Model
     use HasFactory, CommonTraits;
 
     /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = ['addresses'];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
@@ -78,19 +85,14 @@ class Individual extends Model
         return $this->morphMany(Address::class, 'owner');
     }
 
-    public function residentialAddresses()
-    {
-        return $this->addresses()->where('addresses.type', 'residential');
-    }
-
-    public function postalAddresses()
-    {
-        return $this->addresses()->where('addresses.type', 'postal');
-    }
-
     public function directors()
     {
         return $this->hasMany(Director::class);
+    }
+
+    public function shares()
+    {
+        return $this->morphMany(Shareholder::class, 'owner');
     }
 
     /** ATTRIBUTES
@@ -98,7 +100,7 @@ class Individual extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'full_name'
+        'resource_type', 'full_name', 'residential_address_lines', 'postal_address_lines'
     ];
 
     /**
@@ -119,7 +121,32 @@ class Individual extends Model
         return $full_name;
     }
 
+    /**
+     *  Residential Address Lines
+     */
+    public function getResidentialAddressLinesAttribute()
+    {
+        //  Foreach address return the address line
+        return collect($this->addresses)->where('type', 'residential_address')->map(function($address){
 
+            return $address->address_line;
 
+        //  Join multiple addresses with the symbol below
+        })->join(' | ');
+    }
+
+    /**
+     *  Residential Address Lines
+     */
+    public function getPostalAddressLinesAttribute()
+    {
+        //  Foreach address return the address line
+        return collect($this->addresses)->where('type', 'postal_address')->map(function($address){
+
+            return $address->address_line;
+
+        //  Join multiple addresses with the symbol below
+        })->join(' | ');
+    }
 
 }

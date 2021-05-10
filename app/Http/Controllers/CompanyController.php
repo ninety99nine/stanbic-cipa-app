@@ -62,8 +62,8 @@ class CompanyController extends Controller
                 'total_not_imported' => $total_not_imported,
                 'total_outdated' => $total_outdated,
                 'total_recently_updated' => $total_recently_updated,
-                'total_imported_percentage' => (int)($total_imported / $total * 100),
-                'total_recently_updated_percentage' => (int) ($total_recently_updated / $total * 100),
+                'total_imported_percentage' => round( ($total ? ($total_imported / $total * 100) : 0), 2 ),
+                'total_recently_updated_percentage' => round( ($total ? ($total_recently_updated / $total * 100) : 0), 2 ),
             ];
 
             //  Return a list of companies

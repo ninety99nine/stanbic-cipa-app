@@ -28,6 +28,11 @@ class Business extends Model
         return $this->morphMany(Address::class, 'owner');
     }
 
+    public function shares()
+    {
+        return $this->morphMany(Shareholder::class, 'owner');
+    }
+
     /** ATTRIBUTES
      *
      *  Note that the "resource_type" is defined within CommonTraits.

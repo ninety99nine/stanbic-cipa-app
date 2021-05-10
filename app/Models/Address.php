@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Address extends Model
 {
     use HasFactory, CommonTraits;
+
     /**
      * The relationships that should always be loaded.
      *
@@ -103,20 +104,20 @@ class Address extends Model
      *  Note that the "resource_type" is defined within CommonTraits.
      */
     protected $appends = [
-        'resource_type', 'full_address'
+        'resource_type', 'address_line'
     ];
 
     /**
-     *  Company registration status
+     *  Address line
      */
-    public function getFullAddressAttribute()
+    public function getAddressLineAttribute()
     {
         $region_code = ($this->region) ? $this->region->code : null;
         $country_name = ($this->country) ? $this->country->name : null;
 
         $values = [$this->care_of, $this->line_1, $this->line_2, $this->post_code, $region_code, $country_name];
 
-        $full_address = '';
+        $address_line = '';
 
         foreach ($values as $value) {
             if( !empty($value)){
@@ -124,12 +125,12 @@ class Address extends Model
                 //  Remove existing commas and trim white spaces
                 $value = trim( str_replace(',', '', $value) );
 
-                $full_address .= ( !empty($full_address) ? ', ' : '' ).$value;
+                $address_line .= ( !empty($address_line) ? ', ' : '' ).$value;
 
             }
         }
 
-        return $full_address;
+        return $address_line;
     }
 
 }

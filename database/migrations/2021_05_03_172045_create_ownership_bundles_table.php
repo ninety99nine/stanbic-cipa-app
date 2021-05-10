@@ -23,6 +23,7 @@ class CreateOwnershipBundlesTable extends Migration
             $table->string('shareholder_name')->nullable();
             $table->unsignedBigInteger('shareholder_id')->nullable();
             $table->unsignedBigInteger('shareholder_of_company_id')->nullable();
+            $table->unsignedBigInteger('director_id')->nullable();
             $table->char('is_director', 1)->nullable();
             $table->timestamps();
         });

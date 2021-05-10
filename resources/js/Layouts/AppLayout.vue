@@ -23,7 +23,7 @@
                             </div>
 
                             <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                                <jet-nav-link :href="route('ownership-bundles')" :active="route().current('ownership')">
+                                <jet-nav-link :href="route('ownership-bundles')" :active="route().current('ownership-bundles')">
                                     Directors / Shareholders
                                 </jet-nav-link>
                             </div>

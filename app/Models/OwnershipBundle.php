@@ -20,7 +20,7 @@ class OwnershipBundle extends Model
     protected $fillable = [
         'cipa_identifier', 'percentage_of_shares', 'number_of_shares', 'total_shares',
         'ownership_type', 'shareholder_name', 'shareholder_id', 'shareholder_of_company_id',
-        'is_director'
+        'director_id', 'is_director'
     ];
 
     /*
@@ -66,7 +66,7 @@ class OwnershipBundle extends Model
      *  Scope:
      *  Returns ownership bundles by shareholder owner type
      *
-     *  $owner_types = ['individual', 'business', 'company']
+     *  $owner_types = ['individual', 'company', 'organisation']
      */
     public function scopeShareholderOwnerTypes($query, $owner_types = [])
     {
@@ -77,29 +77,35 @@ class OwnershipBundle extends Model
 
     /*
      *  Scope:
-     *  Returns ownership bundles where shareholder are current directors
+     *  Returns ownership bundles by director type
      */
-    public function scopeCurrentDirectors($query)
+    public function scopeDirectorType($query, $directorTypes)
     {
-        return $query->where('is_director', 'y');
-    }
+        return $query->where(function($query) use ($directorTypes){
 
-    /*
-     *  Scope:
-     *  Returns ownership bundles where shareholder are former directors
-     */
-    public function scopeFormerDirectors($query)
-    {
-        return $query->where('is_director', 'f');
-    }
+            if( in_array('current director', $directorTypes) ){
 
-    /*
-     *  Scope:
-     *  Returns ownership bundles where shareholder are not directors
-     */
-    public function scopeNonDirectors($query)
-    {
-        return $query->where('is_director', 'n');
+                $query = $query->orWhereHas('director', function (Builder $query) {
+                    $query->whereNull('ceased_date');
+                });
+
+            }
+
+            if( in_array('former director', $directorTypes) ){
+
+                $query = $query->orWhereHas('director', function (Builder $query) {
+                    $query->whereNotNull('ceased_date');
+                });
+
+            }
+
+            if( in_array('not director', $directorTypes) ){
+
+                $query = $query->orWhereNull('director_id');
+
+            }
+
+        });
     }
 
     /*
@@ -156,6 +162,206 @@ class OwnershipBundle extends Model
         });
     }
 
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has source of shares
+     */
+    public function scopeHasSourcesOfShares($query, $types, $min_source_of_shares = null, $max_source_of_shares = null, $exact_source_of_shares = null)
+    {
+        return $query->where(function($query) use ($types, $min_source_of_shares, $max_source_of_shares, $exact_source_of_shares){
+
+            if( in_array('shareholder to one', $types) ){
+
+                $query = $query->orWhere(function (Builder $query) {
+                            return $query->hasSingleSourceOfShares();
+                        });
+
+            }
+
+            if( in_array('shareholder to many', $types) ){
+
+                $query = $query->orWhere(function (Builder $query) {
+                            return $query->hasMultipleSourcesOfShares();
+                        });
+
+            }
+
+            if( in_array('shareholder to specific', $types) ){
+
+                if( !is_null($min_source_of_shares) ){
+
+                    $query = $query->hasMinSpecifiedSourceOfShares($min_source_of_shares);
+
+                }
+
+                if( !is_null($max_source_of_shares) ){
+
+                    $query = $query->hasMaxSpecifiedSourceOfShares($max_source_of_shares);
+
+                }
+
+                if( !is_null($exact_source_of_shares) ){
+
+                    $query = $query->hasExactlySpecifiedSourceOfShares($exact_source_of_shares);
+
+                }
+
+            }
+
+        });
+
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has multiple source of shares
+     */
+    public function scopeHasMultipleSourcesOfShares($query)
+    {
+        return $query->whereHas('shareholder', function (Builder $query) {
+            $query->whereHas('owner', function (Builder $query) {
+                $query->has('shares', '>=', 2);
+            });
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has one source of shares
+     */
+    public function scopeHasSingleSourceOfShares($query)
+    {
+        return $query->whereHas('shareholder', function (Builder $query) {
+            $query->whereHas('owner', function (Builder $query) {
+                $query->has('shares', '=', 1);
+            });
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has a specified number source of shares
+     */
+    public function scopeHasExactlySpecifiedSourceOfShares($query, $equal_source_of_shares)
+    {
+        return $query->whereNotNull('shareholder_id')->whereHas('shareholder', function (Builder $query) use ($equal_source_of_shares){
+            $query->whereNotNull('owner_id')->whereHas('owner', function (Builder $query) use ($equal_source_of_shares) {
+                $query->has('shares', '=', $equal_source_of_shares);
+            });
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has a specified number source of shares
+     */
+    public function scopeHasMinSpecifiedSourceOfShares($query, $min_source_of_shares)
+    {
+        return $query->whereHas('shareholder', function (Builder $query) use ($min_source_of_shares){
+            $query->whereHas('owner', function (Builder $query) use ($min_source_of_shares) {
+                $query->has('shares', '>=', $min_source_of_shares);
+            });
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where shareholder has a specified number source of shares
+     */
+    public function scopeHasMaxSpecifiedSourceOfShares($query, $max_source_of_shares)
+    {
+        return $query->whereHas('shareholder', function (Builder $query) use ($max_source_of_shares){
+            $query->whereHas('owner', function (Builder $query) use ($max_source_of_shares) {
+                $query->has('shares', '<=', $max_source_of_shares);
+            });
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles that match the given shareholder allocation date
+     */
+    public function scopeShareholderAppointmentDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+
+            $query = $query->whereHas('shareholder', function (Builder $query) use ($start_date) {
+                $query->whereDate('appointment_date', '>=', $start_date);
+            });
+        }
+
+        if( $end_date ){
+            $query = $query->whereHas('shareholder', function (Builder $query) use ($end_date) {
+                $query->whereDate('appointment_date', '<=', $end_date);
+            });
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles that match the given shareholder ceased date
+     */
+    public function scopeShareholderCeasedDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+            $query = $query->whereHas('shareholder', function (Builder $query) use ($start_date) {
+                $query->whereDate('ceased_date', '>=', $start_date);
+            });
+        }
+
+        if( $end_date ){
+            $query = $query->whereHas('shareholder', function (Builder $query) use ($end_date) {
+                $query->whereDate('ceased_date', '<=', $end_date);
+            });
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles that match the given director allocation date
+     */
+    public function scopeDirectorAppointmentDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+            $query = $query->whereHas('director', function (Builder $query) use ($start_date) {
+                $query->whereDate('appointment_date', '>=', $start_date);
+            });
+        }
+
+        if( $end_date ){
+            $query = $query->whereHas('director', function (Builder $query) use ($end_date) {
+                $query->whereDate('appointment_date', '<=', $end_date);
+            });
+        }
+
+        return $query;
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles that match the given director ceased date
+     */
+    public function scopeDirectorCeasedDate($query, $start_date = null, $end_date = null)
+    {
+        if( $start_date ){
+            $query = $query->whereHas('director', function (Builder $query) use ($start_date) {
+                $query->whereDate('ceased_date', '>=', $start_date);
+            });
+        }
+
+        if( $end_date ){
+            $query = $query->whereHas('director', function (Builder $query) use ($end_date) {
+                $query->whereDate('ceased_date', '<=', $end_date);
+            });
+        }
+
+        return $query;
+    }
+
     /*************************************
      *  RELATIONSHIPS                    *
      ************************************/
@@ -168,6 +374,11 @@ class OwnershipBundle extends Model
     public function shareholder()
     {
         return $this->belongsTo(Shareholder::class);
+    }
+
+    public function director()
+    {
+        return $this->belongsTo(Director::class);
     }
 
     /** ATTRIBUTES

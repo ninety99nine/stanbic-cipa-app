@@ -359,9 +359,24 @@ class Company extends Model
      *  RELATIONSHIPS                    *
      ************************************/
 
+    public function directors()
+    {
+        return $this->hasMany(Director::class, 'director_of_company_id');
+    }
+
+    public function shareholders()
+    {
+        return $this->hasMany(Shareholder::class, 'shareholder_of_company_id');
+    }
+
     public function addresses()
     {
         return $this->morphMany(Address::class, 'owner');
+    }
+
+    public function shares()
+    {
+        return $this->morphMany(Shareholder::class, 'owner');
     }
 
     /** ATTRIBUTES

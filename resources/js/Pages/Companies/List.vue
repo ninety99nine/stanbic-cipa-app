@@ -35,7 +35,8 @@
 
             <div class="flex items-start">
                 <el-input v-model="searchWord" :disabled="isBulkUpdating" placeholder="Search companies" prefix-icon="el-icon-search"
-                          size="small" class="outline-none mr-2" :style="{ outline: 'none' }">
+                          size="small" class="outline-none mr-2" :style="{ outline: 'none' }" clearable @keyup.enter="fetchCompanies()"
+                          @clear="fetchCompanies()">
                     <template #prepend>
                         <el-select v-model="searchType" placeholder="Select" :style="{ width: '110px' }">
                             <el-option v-for="(searchType, index) in searchTypes" :key="index" :label="searchType.name" :value="searchType.value"></el-option>
@@ -152,7 +153,7 @@
         <div v-if="showFilterSettings" :class="'bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 '+ (minizeFilterSettings ? 'py-2' : 'py-5')">
 
             <div class="flex justify-between">
-                <h4 class="font-bold text-gray-500">Filter Dates</h4>
+                <h4 class="font-bold text-gray-500">Filter Settings</h4>
                 <jet-button @click="minizeFilterSettings = !minizeFilterSettings">
                     <i :class="( minizeFilterSettings ? 'el-icon-bottom' : 'el-icon-top') +' text-white'"></i>
                 </jet-button>
@@ -363,14 +364,12 @@
                                     <div v-for="(director, index) in scope.row.directors" :key="index"
                                          class="bg-white rounded-sm shadow-md border p-4 mb-2">
                                         <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                            <a :href="route('ownership-bundles', {search: director.individual_name.first_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
-                                                <span class="mr-1">{{ director.individual_name.first_name }}</span>
-                                                <span v-if="director.individual_name.middle_names" class="mr-1">{{ director.individual_name.middle_names }}</span>
-                                                <span>{{ director.individual_name.last_name }}</span>
+                                            <a :href="route('ownership-bundles', {search: director.individual.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                <span class="mr-1">{{ director.individual.full_name }}</span>
                                             </a>
                                             <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
                                         </div>
-                                        <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
+                                        <span v-if="director.individual.residential_address_lines">{{ director.individual.residential_address_lines }}</span>
                                     </div>
 
                                 </div>
@@ -380,26 +379,23 @@
                                     <div v-for="(shareholder, index) in scope.row.shareholders" :key="index"
                                          class="bg-white rounded-sm shadow-md border p-4 mb-2">
 
-                                        <template v-if="shareholder.individual_shareholder">
+                                        <template v-if="shareholder.owner.resource_type == 'individual'">
                                             <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                <a :href="route('ownership-bundles', {search: shareholder.individual_shareholder.individual_name.first_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
-                                                    <span class="mr-1">{{ shareholder.individual_shareholder.individual_name.first_name }}</span>
-                                                    <span v-if="shareholder.individual_shareholder.individual_name.middle_names" class="mr-1">{{ shareholder.individual_shareholder.individual_name.middle_names }}</span>
-                                                    <span>{{ shareholder.individual_shareholder.individual_name.last_name }}</span>
+                                                <a :href="route('ownership-bundles', {search: shareholder.owner.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                    <span class="mr-1">{{ shareholder.owner.full_name }}</span>
                                                 </a>
                                                 <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
                                             </div>
-                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
-
+                                            <span v-if="shareholder.owner.residential_address_lines">{{ shareholder.owner.residential_address_lines }}</span>
                                         </template>
 
-                                        <template v-else-if="shareholder.entity_shareholder">
+                                        <template v-if="shareholder.owner.resource_type == 'company'">
                                             <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
                                                 <span class="font-bold">
-                                                    <span v-if="shareholder.entity_shareholder.uin" class="mr-1">{{ shareholder.entity_shareholder.company_name }}</span>
-                                                    <a v-else :href="route('ownership-bundles', {search: shareholder.entity_shareholder.company_name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.entity_shareholder.company_name }}</a>
-                                                    <span v-if="shareholder.entity_shareholder.uin">
-                                                        (<a :href="route('ownership-bundles', {search: shareholder.entity_shareholder.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.entity_shareholder.uin }}</a>)
+                                                    <span v-if="shareholder.owner.uin" class="mr-1">{{ shareholder.owner.name }}</span>
+                                                    <a v-else :href="route('ownership-bundles', {search: shareholder.owner.name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.owner.name }}</a>
+                                                    <span v-if="shareholder.owner.uin">
+                                                        (<a :href="route('ownership-bundles', {search: shareholder.owner.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.owner.uin }}</a>)
                                                     </span>
                                                 </span>
                                                 <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>

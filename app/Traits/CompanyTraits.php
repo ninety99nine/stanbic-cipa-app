@@ -17,6 +17,7 @@ use App\Models\Company;
 use App\Models\Country;
 use App\Models\Director;
 use App\Models\Individual;
+use App\Models\Organisation;
 use App\Models\OwnershipBundle;
 use App\Models\Region;
 use App\Models\Secretary;
@@ -252,7 +253,7 @@ trait CompanyTraits
                             })->toArray();
 
                 //  Get the companies
-                $companies = \App\Models\Company::select($fields);
+                $companies = \App\Models\Company::select($fields)->with(['directors.individual', 'shareholders.owner']);
 
             }
 
@@ -802,7 +803,8 @@ trait CompanyTraits
                 $template = array_merge($template, [
                     'uin' => $this->uin,
                     'company_status' => 'Not Found',
-                    'cipa_updated_at' => \Carbon\Carbon::now()
+                    'cipa_updated_at' => \Carbon\Carbon::now(),
+                    'marked_as_client' => $this->marked_as_client
                 ]);
 
                 //  Mark the company status as Not Found
@@ -840,9 +842,9 @@ trait CompanyTraits
              ****************************************/
 
              // If the country code is specified
-            if( !empty($data['country']) ){
+            if( !empty($data['country_code']) ){
 
-                $country = $this->createOrUpdateResourceAddressCountry($data['country']);
+                $country = $this->createOrUpdateResourceAddressCountry($data['country_code']);
 
             }
 
@@ -1003,6 +1005,14 @@ trait CompanyTraits
 
                     $this->createOrUpdateResourceEntityShareholder($shareholder['entity_shareholder']);
 
+                }elseif( !is_null($shareholder['other_shareholder']) ){
+
+                    /********************************************
+                     *  CREATE / UPDATE ENTITY SHAREHOLDER      *
+                     *******************************************/
+
+                    $this->createOrUpdateResourceOtherShareholder($shareholder['other_shareholder']);
+
                 }
             }
         }
@@ -1019,43 +1029,8 @@ trait CompanyTraits
 
         $individual = $this->createOrUpdateResourceIndividual($individual_shareholder);
 
-        if( $individual ){
-
-            /****************************************
-             *  CREATE / UPDATE SHAREHOLDER         *
-             ****************************************/
-
-            $identifiers = [
-                'owner_id' => $individual->id,
-                'owner_type' => $individual->resource_type,
-                'shareholder_of_company_id' => $this->id
-            ];
-
-            $individual_shareholder_template = array_merge(
-                $individual_shareholder,
-                $identifiers
-            );
-
-            Shareholder::updateOrCreate(
-                /**
-                 *  Ideally we would like to update by the referencing the cipa_identifier as follows:
-                 *
-                 *  Where cipa_identifier = $individual_shareholder_template['cipa_identifier']
-                 *
-                 *  But the identifier keeps changing value so we must use the following instead:
-                 *
-                 *  Where owner_id = $individual_shareholder_template['owner_id'] and
-                 *  Where owner_type = $individual_shareholder_template['owner_type'] and
-                 *  Where shareholder_of_company_id = $individual_shareholder_template['shareholder_of_company_id']
-                 */
-                $identifiers,
-
-                //  Update or Create a record with this Array of key/values
-                $individual_shareholder_template
-
-            );
-
-        }
+        //  Create / update the shareholder
+        $shareholder = $this->createOrUpdateShareholder($individual_shareholder, $individual);
 
     }
 
@@ -1070,20 +1045,46 @@ trait CompanyTraits
 
         $entity = $this->createOrUpdateResourceEntity($entity_shareholder);
 
-        if( $entity ){
+        //  Create / update the shareholder
+        $shareholder = $this->createOrUpdateShareholder($entity_shareholder, $entity);
+
+    }
+
+    /**
+     *  This method creates or updates other shareholder (An Organisation e.g Trust, Union, e.t.c)
+     */
+    public function createOrUpdateResourceOtherShareholder($organisation_shareholder)
+    {
+        /****************************************
+         *  CREATE / UPDATE ENTITY              *
+         ****************************************/
+
+        $organisation = $this->createOrUpdateResourceOrganisation($organisation_shareholder);
+
+        //  Create / update the shareholder
+        $shareholder = $this->createOrUpdateShareholder($organisation_shareholder, $organisation);
+
+    }
+
+    /**
+     *  This method creates or updates other shareholder (An Organisation e.g Trust, Union, e.t.c)
+     */
+    public function createOrUpdateShareholder($shareholder, $owner)
+    {
+        if( $owner ){
 
             /****************************************
              *  CREATE / UPDATE SHAREHOLDER         *
              ****************************************/
 
             $identifiers = [
-                'owner_id' => $entity->id,
-                'owner_type' => $entity->resource_type,
+                'owner_id' => $owner->id,
+                'owner_type' => $owner->resource_type,
                 'shareholder_of_company_id' => $this->id
             ];
 
-            $entity_shareholder_template = array_merge(
-                $entity_shareholder,
+            $shareholder_template = array_merge(
+                $shareholder,
                 $identifiers
             );
 
@@ -1091,18 +1092,18 @@ trait CompanyTraits
                 /**
                  *  Ideally we would like to update by the referencing the cipa_identifier as follows:
                  *
-                 *  Where cipa_identifier = $entity_shareholder_template['cipa_identifier']
+                 *  Where cipa_identifier = $shareholder_template['cipa_identifier']
                  *
                  *  But the identifier keeps changing value so we must use the following instead:
                  *
-                 *  Where owner_id = $entity_shareholder_template['owner_id'] and
-                 *  Where owner_type = $entity_shareholder_template['owner_type'] and
-                 *  Where shareholder_of_company_id = $entity_shareholder_template['shareholder_of_company_id']
+                 *  Where owner_id = $shareholder_template['owner_id'] and
+                 *  Where owner_type = $shareholder_template['owner_type'] and
+                 *  Where shareholder_of_company_id = $shareholder_template['shareholder_of_company_id']
                  */
                 $identifiers,
 
                 //  Update or Create a record with this Array of key/values
-                $entity_shareholder_template
+                $shareholder_template
 
             );
 
@@ -1265,65 +1266,81 @@ trait CompanyTraits
             //  Get the related directors and their owners
             $directors = Director::where('director_of_company_id', $this->id)->with('individual')->get();
 
-            //  Foreach ownership bundle
+            /**
+             *  Foreach ownership bundle
+             *
+             *  $ownership_bundle structure:
+             *
+             *  {
+             *      "cipa_identifier":"c5bb5bb15474114d",
+             *      "number_of_shares":"100",
+             *      "ownership_type":"individual",
+             *      "owners":{
+             *          "owner":{
+             *              "cipa_identifier":"9cea7d7178ab7193",
+             *              "shareholder_name":"Katharine Hewitt "
+             *          }
+             *      }
+             *  }
+             */
             foreach ($ownership_bundles as $ownership_bundle) {
 
-                /****************************************
-                 *  CREATE / UPDATE OWNERSHIP BUNDLE    *
-                 ****************************************/
+                /**
+                 *  Make sure we have the owners specified. Sometimes this can be null e.g
+                 *
+                 *  {
+                 *      "cipa_identifier":"8d380f59efa1ec48",
+                 *      "number_of_shares":null,
+                 *      "ownership_type":null,
+                 *      "owners":null
+                 *  }
+                 */
+                if( is_null($ownership_bundle['owners']) == false ){
 
-                $shareholder_name = $ownership_bundle['owners']['owner']['shareholder_name'];
+                    /****************************************
+                     *  CREATE / UPDATE OWNERSHIP BUNDLE    *
+                     ****************************************/
 
-                //  Find the matching shareholder
-                $matched_shareholder = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
+                    $shareholder_name = trim($ownership_bundle['owners']['owner']['shareholder_name']);
 
-                    \Illuminate\Support\Facades\Log::debug('$shareholder->owner_type: '.$shareholder->owner_type);
+                    //  Find the matching shareholder
+                    $matched_shareholder = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
 
-                    //  If the owner is a company or business
-                    if( in_array($shareholder->owner_type, ['company', 'business']) ){
+                        //  If the owner is a company or organisation
+                        if( in_array($shareholder->owner_type, ['company', 'organisation']) ){
 
-                        \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->name);
+                            \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->name);
 
-                        return (trim($shareholder_name) == $shareholder->owner->name);
+                            return ($shareholder_name == trim($shareholder->owner->name));
 
-                    //  If the owner is an individual
-                    }elseif( $shareholder->owner_type == 'individual' ){
+                        //  If the owner is an individual
+                        }elseif( $shareholder->owner_type == 'individual' ){
 
-                        \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->full_name);
+                            \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->full_name);
 
-                        return (trim($shareholder_name) == $shareholder->owner->full_name);
+                            return ($shareholder_name == trim($shareholder->owner->full_name));
 
-                    }
+                        }
 
-                    return false;
+                        return false;
 
-                });
+                    });
 
-                //  Retrieve the matching shareholder id
-                $shareholder_id = count($matched_shareholder) ? $matched_shareholder->first()->id : null;
+                    //  Retrieve the matching shareholder id
+                    $shareholder_id = count($matched_shareholder) ? $matched_shareholder->first()->id : null;
 
-                //  Set the is_director to "n" for "no" by default
-                $is_director = 'n';
+                    //  Set the director_id to "null" by default
+                    $director_id = null;
 
-                foreach ($directors as $director) {
+                    foreach ($directors as $director) {
 
-                    //  If we have the linked individual
-                    if( $director->individual ){
+                        //  If we have the linked individual
+                        if( $director->individual ){
 
-                        //  If the shareholder name matches the linked individual full name
-                        if( (trim($shareholder_name) == $director->individual->full_name) ){
+                            //  If the shareholder name matches the linked individual full name
+                            if( ($shareholder_name == trim($director->individual->full_name)) ){
 
-                            //  If the director is a current director
-                            if( is_null($director->ceased_date) ){
-
-                                //  Set the is_director to "y" for "yes" (Current director)
-                                $is_director = 'y';
-
-                            //  If the director is a former director
-                            }else{
-
-                                //  Set the is_director to "f" for "former" (Former director)
-                                $is_director = 'f';
+                                $director_id = $director->id;
 
                             }
 
@@ -1331,42 +1348,42 @@ trait CompanyTraits
 
                     }
 
+                    $identifiers = [
+                        'shareholder_name' => $shareholder_name,
+                        'shareholder_of_company_id' => $this->id
+                    ];
+
+                    $ownership_bundle_template = array_merge(
+                        $ownership_bundle,
+                        $identifiers,
+                        [
+                            'director_id' => $director_id,
+                            'total_shares' => $total_shares,
+                            'shareholder_id' => $shareholder_id,
+                            'percentage_of_shares' => round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2)
+                        ]
+                    );
+
+                    //  Create / Update the Ownership Bundle
+                    OwnershipBundle::updateOrCreate(
+                        /**
+                         *  Ideally we would like to update by the referencing the cipa_identifier as follows:
+                         *
+                         *  Where cipa_identifier = $ownership_bundle_template['cipa_identifier']
+                         *
+                         *  But the identifier keeps changing value so we must use the following instead:
+                         *
+                         *  Where shareholder_name = $ownership_bundle_template['shareholder_name'] and
+                         *  Where shareholder_of_company_id = $ownership_bundle_template['shareholder_of_company_id']
+                         */
+                        $identifiers,
+
+                        //  Update or Create a record with this Array of key/values
+                        $ownership_bundle_template
+
+                    );
+
                 }
-
-                $identifiers = [
-                    'shareholder_name' => $shareholder_name,
-                    'shareholder_of_company_id' => $this->id
-                ];
-
-                $ownership_bundle_template = array_merge(
-                    $ownership_bundle,
-                    $identifiers,
-                    [
-                        'is_director' => $is_director,
-                        'total_shares' => $total_shares,
-                        'shareholder_id' => $shareholder_id,
-                        'percentage_of_shares' => round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2)
-                    ]
-                );
-
-                //  Create / Update the Ownership Bundle
-                OwnershipBundle::updateOrCreate(
-                    /**
-                     *  Ideally we would like to update by the referencing the cipa_identifier as follows:
-                     *
-                     *  Where cipa_identifier = $ownership_bundle_template['cipa_identifier']
-                     *
-                     *  But the identifier keeps changing value so we must use the following instead:
-                     *
-                     *  Where shareholder_name = $ownership_bundle_template['shareholder_name'] and
-                     *  Where shareholder_of_company_id = $ownership_bundle_template['shareholder_of_company_id']
-                     */
-                    $identifiers,
-
-                    //  Update or Create a record with this Array of key/values
-                    $ownership_bundle_template
-
-                );
 
             }
         }
@@ -1512,6 +1529,106 @@ trait CompanyTraits
     }
 
     /**
+     *  This method creates or updates organisation (Trust, Union, e.t.c)
+     */
+    public function createOrUpdateResourceOrganisation($organisation_template)
+    {
+        /****************************************
+         *  CREATE / UPDATE ORGANISATION        *
+         ****************************************/
+
+        /**
+         *  Example structure of $organisation_template
+         *
+         *  {
+         *      "cipa_identifier":"7ecd5f3776586442",
+         *      "registration_number":null,
+         *      "name":"Accuro Trust Mauritius Limited - Trustee For The Lucozo Trust",
+         *      "country_code":"MU",
+         *      "registered_office_address":{
+         *          "cipa_identifier":"d5ce89117b83c1dd",
+         *          "care_of":null,
+         *          "line_1":"Level 8c, Cyber Tower I I",
+         *          "line_2":null,
+         *          "region_code":"Ebene Cybercity",
+         *          "post_code":"72201",
+         *          "country_code":"MU",
+         *          "start_date":"2010-08-12 00:00:00",
+         *          "end_date":null
+         *      },
+         *      "postal_office_address":{
+         *          "cipa_identifier":"3456bf700bfcccd5",
+         *          "care_of":null,
+         *          "line_1":"Level 8c, Cyber Tower I I",
+         *          "line_2":null,
+         *          "region_code":"Ebene Cybercity",
+         *          "post_code":"72201",
+         *          "country_code":"MU",
+         *          "start_date":"2010-08-12 00:00:00",
+         *          "end_date":null
+         *      },
+         *      "appointment_date":"2012-10-31 00:00:00",
+         *      "ceased_date":null,
+         *      "nominee":false
+         *  }
+         */
+
+        // If the country code is specified
+        if( !empty($organisation_template['country_code']) ){
+
+            $country = $this->createOrUpdateResourceAddressCountry($organisation_template['country_code']);
+
+        }
+
+        $identifiers = [
+            'name' => $organisation_template['name']
+        ];
+
+        //  Merge the address type and ownership details
+        $organisation_template = array_merge(
+            $organisation_template,
+            [
+                'country_id' => $country->id ?? null
+            ]
+        );
+
+        //  Create / Update the Organisation
+        $organisation = Organisation::updateOrCreate(
+
+            //  Where uin = $uin
+            $identifiers,
+
+            //  Update or Create a record with this Array of key/values
+            $organisation_template
+
+        );
+
+        //  If we have the organisation registered office address
+        if( !empty($organisation_template['registered_office_address']) ){
+
+            //  Create or update the organisation registered office address
+            $this->createOrUpdateResourceAddress(
+                $organisation_template['registered_office_address'],
+                'registered_office_address', $organisation->id, $organisation->resource_type
+            );
+
+        }
+
+        //  If we have the organisation postal address
+        if( !empty($organisation_template['postal_office_address']) ){
+
+            //  Create or update the organisation postal address
+            $this->createOrUpdateResourceAddress(
+                $organisation_template['postal_office_address'],
+                'postal_office_address', $organisation->id, $organisation->resource_type
+            );
+
+        }
+
+        return $organisation;
+    }
+
+    /**
      *  This method searches the CIPA database for a single company matching the given search term
      */
     public function requestCipaSearch($data = [])
@@ -1638,7 +1755,7 @@ trait CompanyTraits
                 'Line2' => 'line_2',
                 'RegionCode' => 'region_code',
                 'PostCode' => 'post_code',
-                'Country' => 'country',
+                'Country' => 'country_code',
                 'StartDate' => 'start_date',
                 'EndDate' => 'end_date'
             ]
@@ -1747,6 +1864,23 @@ trait CompanyTraits
                     ],
                     'dates' => ['appointment_date', 'ceased_date']
                 ],
+
+                //  This can be an Other Shareholder e.g Trust or Union
+                'OtherShareholder' => [
+                    'name' => 'other_shareholder',
+                    'fields' => [
+                        'identifier' => 'cipa_identifier',
+                        'RegistrationNumber' => 'registration_number',
+                        'Name' => 'name',
+                        'CountryOfRegistration' => 'country_code',
+                        'RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
+                        'PostalOfficeAddress' => $this->cipaAddressFieldsTemplate('postal_office_address'),
+                        'AppointmentDate' => 'appointment_date',
+                        'CeasedDate' => 'ceased_date',
+                        'Nominee' => 'nominee'
+                    ],
+                    'dates' => ['appointment_date', 'ceased_date']
+                ],
             ]
         ];
     }
@@ -1829,9 +1963,9 @@ trait CompanyTraits
                 $newFieldName = $cipaFields[$originalFieldName]['name'];
                 $subFields = $cipaFields[$originalFieldName]['fields'];
 
-                if( isset($newFieldName['dates']) ){
+                if( isset($cipaFields[$originalFieldName]['dates']) ){
 
-                    $subDates = $newFieldName['dates'];
+                    $subDates = $cipaFields[$originalFieldName]['dates'];
 
                 }else{
 

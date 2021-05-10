@@ -14,7 +14,7 @@
             <div class="flex items-start">
 
                 <el-input v-model="searchWord" placeholder="Search shareholders or directors" prefix-icon="el-icon-search"
-                          size="small" class="mr-2" clearable @clear="fetchOwnershipBundles()">
+                          size="small" class="mr-2" clearable @keyup.enter="fetchOwnershipBundles()" @clear="fetchOwnershipBundles()">
                     <template #prepend>
                         <el-select v-model="searchType" placeholder="Select" :style="{ width: '140px' }" @change="triggerSearch(searchWord)">
                             <el-option v-for="(searchType, index) in searchTypes" :key="index" :label="searchType.name" :value="searchType.value"></el-option>
@@ -65,7 +65,7 @@
         <div v-if="showFilterSettings" :class="'bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 '+ (minizeFilterSettings ? 'py-2' : 'py-5')">
 
             <div class="flex justify-between">
-                <h4 class="font-bold text-gray-500">Filter Dates</h4>
+                <h4 class="font-bold text-gray-500">Filter Settings</h4>
                 <jet-button @click="minizeFilterSettings = !minizeFilterSettings">
                     <i :class="( minizeFilterSettings ? 'el-icon-bottom' : 'el-icon-top') +' text-white'"></i>
                 </jet-button>
@@ -78,9 +78,89 @@
                     <div v-if="filterByCustomShareholders">
                         <span class="block py-2 mb-2">Share Allocation</span>
                         <div class="flex items-center">
+                            <span class="text-xs mr-4">From</span>
                             <el-input-number size="mini" v-model="filterSettings.start_percentage" :min="0" :max="100" @change="fetchOwnershipBundles()"></el-input-number>
                             <span class="text-xs mx-4">To</span>
                             <el-input-number size="mini" v-model="filterSettings.end_percentage" :min="filterSettings.start_percentage" :max="100" @change="fetchOwnershipBundles()"></el-input-number>
+                        </div>
+                    </div>
+
+                    <div v-if="filterByShareholderToSpecificNumber">
+
+                        <span class="block py-2 mb-2">Shareholder number range</span>
+
+                        <div class="d-flex">
+                            <span class="text-xs mr-2">Type:</span>
+                            <el-select v-model="filterSettings.source_of_shares_type" size="mini" class="mb-2" placeholder="Select" @change="fetchOwnershipBundles()">
+                                <el-option v-for="option in ['Minimum', 'Maximum', 'Exact', 'Range']" :key="option" :label="option" :value="option"></el-option>
+                            </el-select>
+                        </div>
+
+                        <template v-if="filterSettings.source_of_shares_type == 'Minimum'">
+                            <div class="flex items-center">
+                            <span class="text-xs mr-4">Mimumim</span>
+                                <el-input-number size="mini" v-model="filterSettings.min_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.source_of_shares_type == 'Maximum'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">Maximum</span>
+                                <el-input-number size="mini" v-model="filterSettings.max_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.source_of_shares_type == 'Exact'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">Exactly</span>
+                                <el-input-number size="mini" v-model="filterSettings.exact_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.source_of_shares_type == 'Range'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">From</span>
+                                <el-input-number size="mini" v-model="filterSettings.min_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                                <span class="text-xs mx-4">To</span>
+                                <el-input-number size="mini" v-model="filterSettings.max_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                    </div>
+
+                    <div v-if="filterByShareholderAppointedDate">
+                        <span class="block py-2 mb-2">Shareholder appointment date</span>
+                        <div class="flex items-center">
+                            <el-date-picker v-model="filterSettings.shareholder_appointed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchOwnershipBundles()"></el-date-picker>
+                            <span>-</span>
+                            <el-date-picker v-model="filterSettings.shareholder_appointed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchOwnershipBundles()"></el-date-picker>
+                        </div>
+                    </div>
+
+                    <div v-if="filterByShareholderCeasedDate">
+                        <span class="block py-2 mb-2">Shareholder ceased date</span>
+                        <div class="flex items-center">
+                            <el-date-picker v-model="filterSettings.shareholder_ceased_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchOwnershipBundles()"></el-date-picker>
+                            <span>-</span>
+                            <el-date-picker v-model="filterSettings.shareholder_ceased_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchOwnershipBundles()"></el-date-picker>
+                        </div>
+                    </div>
+
+                    <div v-if="filterByDirectorAppointedDate">
+                        <span class="block py-2 mb-2">Director appointment date</span>
+                        <div class="flex items-center">
+                            <el-date-picker v-model="filterSettings.director_appointed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchOwnershipBundles()"></el-date-picker>
+                            <span>-</span>
+                            <el-date-picker v-model="filterSettings.director_appointed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchOwnershipBundles()"></el-date-picker>
+                        </div>
+                    </div>
+
+                    <div v-if="filterByDirectorCeasedDate">
+                        <span class="block py-2 mb-2">Director ceased date</span>
+                        <div class="flex items-center">
+                            <el-date-picker v-model="filterSettings.director_ceased_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="fetchOwnershipBundles()"></el-date-picker>
+                            <span>-</span>
+                            <el-date-picker v-model="filterSettings.director_ceased_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="fetchOwnershipBundles()"></el-date-picker>
                         </div>
                     </div>
 
@@ -122,12 +202,26 @@
 
             <!-- Table -->
             <el-table :data="tableData">
-
+                <el-table-column min-width="40" fixed>
+                    <template #default="scope">
+                        <el-popover v-if="scope.row.is_imported_from_cipa" placement="top-start" :title="scope.row.is_compliant.name" :width="190" trigger="hover">
+                            <template #reference>
+                                <i v-if="scope.row.is_compliant.status" class="el-icon-circle-check text-green-400"></i>
+                                <i v-else class="el-icon-circle-close text-red-400"></i>
+                            </template>
+                            <div>
+                                <span v-if="scope.row.is_cancelled" class="text-red-500">Company is cancelled</span>
+                                <span v-else-if="scope.row.is_removed" class="text-red-500">Company is removed</span>
+                                <span v-else-if="scope.row.is_not_found" class="text-red-500">Company not found</span>
+                            </div>
+                        </el-popover>
+                    </template>
+                </el-table-column>
                 <el-table-column min-width="250" prop="company_name" label="Company" fixed>
                     <template #default="scope">
                         <span :style="{ wordBreak: 'break-word' }">
-                            <span>{{ scope.row.company_name }}</span><br>
-                            <a v-if="scope.row.company_uin" :href="route('companies', {search: scope.row.company_uin, search_type: 'internal'})" class="text-blue-800 text-xs underline cursor-pointer">
+                            <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.company_name)">{{ scope.row.company_name }}</span>
+                            <a v-if="scope.row.company_uin" :href="route('companies', {search: scope.row.company_uin, search_type: 'internal'})" class="text-blue-800 text-xs underline cursor-pointer ml-2">
                                 {{ scope.row.company_uin }}
                             </a>
                         </span>
@@ -170,6 +264,44 @@
                 <el-table-column min-width="100" prop="number_of_shares" label="# of shares" align="center"></el-table-column>
                 <el-table-column min-width="100" prop="total_shares" label="Total shares" align="center"></el-table-column>
                 <el-table-column min-width="100" prop="nominee" label="Nominee" align="center"></el-table-column>
+                <el-table-column min-width="100" prop="is_director" label="Director" align="center">
+                    <template #default="scope">
+                        <span>{{ scope.row.is_director ? 'Yes' : 'No' }}</span>
+                    </template>
+                </el-table-column>
+
+is_director
+
+                <el-table-column min-width="210" prop="shareholder_appointment_date" label="Shareholder appointed date">
+                    <template #default="scope">
+                        <span v-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.shareholder_appointment_date }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column min-width="200" prop="shareholder_ceased_date" label="Shareholder ceased date">
+                    <template #default="scope">
+                        <span v-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.shareholder_ceased_date }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column min-width="190" prop="director_appointment_date" label="Director appointed date">
+                    <template #default="scope">
+                        <span v-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.director_appointment_date }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
+
+                <el-table-column min-width="180" prop="director_ceased_date" label="Director ceased date">
+                    <template #default="scope">
+                        <span v-if="scope.row.is_imported_from_cipa">
+                            <span>{{ scope.row.director_ceased_date }}</span>
+                        </span>
+                    </template>
+                </el-table-column>
 
                 <el-table-column min-width="250" prop="residential_addresses" label="Residential address">
                     <template #default="scope">
@@ -252,10 +384,6 @@
                 //  Filter attributes
                 minizeFilterSettings: false,
                 selectedFilters: [],
-                filterSettings: {
-                    start_percentage: 0,
-                    end_percentage: 100
-                },
                 filters: [
                     {
                         label: 'Entity',
@@ -269,8 +397,8 @@
                                 value: 'company'
                             },
                             {
-                                name: 'Businesses',
-                                value: 'business'
+                                name: 'Organisations',
+                                value: 'organisation'
                             }
                         ]
                     },
@@ -325,12 +453,16 @@
                         label: 'Ownership',
                         options: [
                             {
+                                name: 'Shareholder to one',
+                                value: 'shareholder to one'
+                            },
+                            {
                                 name: 'Shareholder to many',
                                 value: 'shareholder to many'
                             },
                             {
-                                name: 'Shareholder to one',
-                                value: 'shareholder to one'
+                                name: 'Shareholder to specific number',
+                                value: 'shareholder to specific'
                             }
                         ]
                     },
@@ -353,20 +485,46 @@
                         label: 'Dates',
                         options: [
                             {
-                                name: 'Appointment Date',
-                                value: 'appointment date'
+                                name: 'Shareholder appointed date',
+                                value: 'shareholder appointed date'
                             },
                             {
-                                name: 'Ceased Date',
-                                value: 'ceased date'
+                                name: 'Shareholder ceased date',
+                                value: 'shareholder ceased date'
                             },
                             {
-                                name: 'Updated Date',
-                                value: 'updated date'
+                                name: 'Director appointed date',
+                                value: 'director appointed date'
                             },
+                            {
+                                name: 'Director ceased date',
+                                value: 'director ceased date'
+                            }
                         ]
                     }
                 ],
+                filterSettings: {
+                    start_percentage: 0,
+                    end_percentage: 100,
+
+                    min_source_of_shares: 1,
+                    max_source_of_shares: 2,
+                    exact_source_of_shares: 1,
+                    source_of_shares_type: 'Minimum',
+
+                    shareholder_appointed_start_date: null,
+                    shareholder_appointed_end_date: null,
+
+                    shareholder_ceased_start_date: null,
+                    shareholder_ceased_end_date: null,
+
+                    director_appointed_start_date: null,
+                    director_appointed_end_date: null,
+
+                    director_ceased_start_date: null,
+                    director_ceased_end_date: null,
+                },
+                shareholderToSpecificType: 'Minimum',
 
                 //  Sorting attributes
                 showSortBy: false,
@@ -403,8 +561,35 @@
                     return ['custom shareholder'].includes(selectedFilter);
                 }).length ? true : false;
             },
+            filterByShareholderToSpecificNumber(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['shareholder to specific'].includes(selectedFilter);
+                }).length ? true : false;
+            },
+            filterByShareholderAppointedDate(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['shareholder appointed date'].includes(selectedFilter);
+                }).length ? true : false;
+            },
+            filterByShareholderCeasedDate(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['shareholder ceased date'].includes(selectedFilter);
+                }).length ? true : false;
+            },
+            filterByDirectorAppointedDate(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['director appointed date'].includes(selectedFilter);
+                }).length ? true : false;
+            },
+            filterByDirectorCeasedDate(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['director ceased date'].includes(selectedFilter);
+                }).length ? true : false;
+            },
             showFilterSettings(){
-                return this.filterByCustomShareholders;
+                return this.filterByCustomShareholders || this.filterByShareholderToSpecificNumber ||
+                       this.filterByShareholderAppointedDate || this.filterByShareholderCeasedDate ||
+                       this.filterByDirectorAppointedDate || this.filterByDirectorCeasedDate;
             },
             urlQueryParamsAsObject(){
 
@@ -433,6 +618,74 @@
                 //  Set the filter end percentage (If required)
                 if( this.filterByCustomShareholders && this.filterSettings.end_percentage ){
                     url_append.end_percentage = this.filterSettings.end_percentage;
+                }
+
+                //  Set the filter source of shares type (If required)
+                if( this.filterByShareholderToSpecificNumber && this.filterSettings.source_of_shares_type ){
+                    url_append.source_of_shares_type = this.filterSettings.source_of_shares_type;
+                }
+
+                //  Set the filter exact source of shares (If required)
+                if( this.filterByShareholderToSpecificNumber && this.filterSettings.exact_source_of_shares ){
+                    if( ['Exact'].includes(this.filterSettings.source_of_shares_type) ){
+                        url_append.exact_source_of_shares = this.filterSettings.exact_source_of_shares;
+                    }
+                }
+
+                //  Set the filter min source of shares (If required)
+                if( this.filterByShareholderToSpecificNumber && this.filterSettings.min_source_of_shares ){
+                    if( ['Minimum', 'Range'].includes(this.filterSettings.source_of_shares_type) ){
+                        url_append.min_source_of_shares = this.filterSettings.min_source_of_shares;
+                    }
+                }
+
+                //  Set the filter max source of shares (If required)
+                if( this.filterByShareholderToSpecificNumber && this.filterSettings.max_source_of_shares ){
+                    if( ['Maximum', 'Range'].includes(this.filterSettings.source_of_shares_type) ){
+                        url_append.max_source_of_shares = this.filterSettings.max_source_of_shares;
+                    }
+                }
+
+                //  Set the filter shareholder appointment start date
+                if( this.filterByShareholderAppointedDate && this.filterSettings.shareholder_appointed_start_date ){
+                    url_append.shareholder_appointed_start_date = this.filterSettings.shareholder_appointed_start_date;
+                }
+
+                //  Set the filter shareholder appointment end date
+                if( this.filterByShareholderAppointedDate && this.filterSettings.shareholder_appointed_end_date ){
+                    url_append.shareholder_appointed_end_date = this.filterSettings.shareholder_appointed_end_date;
+                }
+
+                //  Set the filter shareholder appointment start date
+                if( this.filterByShareholderCeasedDate && this.filterSettings.shareholder_ceased_start_date ){
+                    url_append.shareholder_ceased_start_date = this.filterSettings.shareholder_ceased_start_date;
+                }
+
+                //  Set the filter shareholder appointment end date
+                if( this.filterByShareholderCeasedDate && this.filterSettings.shareholder_ceased_end_date ){
+                    url_append.shareholder_ceased_end_date = this.filterSettings.shareholder_ceased_end_date;
+                }
+
+
+
+                //  Set the filter director appointment start date
+                if( this.filterByDirectorAppointedDate && this.filterSettings.director_appointed_start_date ){
+                    url_append.director_appointed_start_date = this.filterSettings.director_appointed_start_date;
+                }
+
+                //  Set the filter director appointment end date
+                if( this.filterByDirectorAppointedDate && this.filterSettings.director_appointed_end_date ){
+                    url_append.director_appointed_end_date = this.filterSettings.director_appointed_end_date;
+                }
+
+                //  Set the filter director ceased start date
+                if( this.filterByDirectorCeasedDate && this.filterSettings.director_ceased_start_date ){
+                    url_append.director_ceased_start_date = this.filterSettings.director_ceased_start_date;
+                }
+
+                //  Set the filter director ceased end date
+                if( this.filterByDirectorCeasedDate && this.filterSettings.director_ceased_end_date ){
+                    url_append.director_ceased_end_date = this.filterSettings.director_ceased_end_date;
                 }
 
                 url_append.per_page = this.perPage;
@@ -490,11 +743,13 @@
 
                 this.fetchOwnershipBundles();
             },
-            triggerSearch(searchWord){
+            triggerSearch(searchWord, searchType = 'any'){
 
                 if(searchWord){
 
                     this.searchWord = searchWord;
+
+                    this.searchType = searchType;
 
                     this.fetchOwnershipBundles();
 
@@ -526,49 +781,73 @@
                             total_shares: ownership_bundle.total_shares,
                             shareholder_name: ownership_bundle.shareholder_name,
 
-                            //  Shareholder information
-                            nominee: ownership_bundle.shareholder.nominee.name,
-                            appointment_date: ownership_bundle.shareholder.appointment_date,
-                            ceased_date: ownership_bundle.shareholder.ceased_date,
-                            owner_type: ownership_bundle.shareholder.owner_type,
-
                             //  Company information
                             company_uin: ownership_bundle.company.uin,
                             company_name: ownership_bundle.company.name,
                             company_status: ownership_bundle.company.company_status,
-                            is_imported_from_cipa: ownership_bundle.company.is_imported_from_cipa
+                            is_imported_from_cipa: ownership_bundle.company.is_imported_from_cipa,
+
+                            //  Company Attributes information
+                            is_registered: ownership_bundle.company.is_registered.status,
+                            is_cancelled: ownership_bundle.company.is_cancelled.status,
+                            is_removed: ownership_bundle.company.is_removed.status,
+                            is_not_found: ownership_bundle.company.is_not_found.status,
+                            is_compliant: ownership_bundle.company.is_compliant,
                         };
 
-                        //  Additional Shareholder details (If Individual Shareholder)
-                        if( ownership_bundle.shareholder.owner_type == 'individual' ){
+                        //  If we have a shareholder
+                        if( ownership_bundle.shareholder ){
 
-                            if( ownership_bundle.shareholder.owner ){
+                            //  Shareholder information
+                            data.nominee = ownership_bundle.shareholder.nominee.name;
+                            data.owner_type = ownership_bundle.shareholder.owner_type;
+                            data.shareholder_appointment_date = ownership_bundle.shareholder.appointment_date;
+                            data.shareholder_ceased_date = ownership_bundle.shareholder.ceased_date;
 
-                                //  Residential Addresses
-                                data.residential_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
-                                    return address.type == 'residential_address';
-                                }).map((residentialAddress) => {
-                                    return residentialAddress.full_address;
-                                }).join(' | ');
 
-                                //  Postal Addresses
-                                data.postal_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
-                                    return address.type == 'postal_address';
-                                }).map((postalAddress) => {
-                                    return postalAddress.full_address;
-                                }).join(' | ');
+                            //  Additional Shareholder details (If Individual Shareholder)
+                            if( ownership_bundle.shareholder.owner_type == 'individual' ){
 
-                            }
+                                if( ownership_bundle.shareholder.owner ){
 
-                        }else if( ownership_bundle.shareholder.owner_type == 'company' ){
+                                    //  Residential Addresses
+                                    data.residential_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
+                                        return address.type == 'residential_address';
+                                    }).map((residentialAddress) => {
+                                        return residentialAddress.address_line;
+                                    }).join(' | ');
 
-                            if( ownership_bundle.shareholder.owner ){
+                                    //  Postal Addresses
+                                    data.postal_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
+                                        return address.type == 'postal_address';
+                                    }).map((postalAddress) => {
+                                        return postalAddress.address_line;
+                                    }).join(' | ');
 
-                                data.shareholder_uin = ownership_bundle.shareholder.owner.uin;
+                                }
+
+                            }else if( ownership_bundle.shareholder.owner_type == 'company' ){
+
+                                if( ownership_bundle.shareholder.owner ){
+
+                                    data.shareholder_uin = ownership_bundle.shareholder.owner.uin;
+
+                                }
 
                             }
 
                         }
+
+                        //  If we have a director
+                        if( ownership_bundle.director ){
+
+                            //  Director information
+                            data.director_appointment_date = ownership_bundle.director.appointment_date;
+                            data.director_ceased_date = ownership_bundle.director.ceased_date;
+
+                        }
+
+                        data.is_director = ownership_bundle.director_id ? true : false;
 
                         return data;
                     });

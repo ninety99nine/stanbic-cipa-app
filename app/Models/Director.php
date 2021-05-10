@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,6 +10,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Director extends Model
 {
     use HasFactory, CommonTraits;
+
+    /**
+     * The attributes that should be mutated to dates.
+     *
+     * @var array
+     */
+    protected $dates = [
+        'appointment_date',
+        'ceased_date'
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -57,5 +68,15 @@ class Director extends Model
     protected $appends = [
         'resource_type'
     ];
+
+    public function getAppointmentDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
+
+    public function getCeasedDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d M Y') : null;
+    }
 
 }

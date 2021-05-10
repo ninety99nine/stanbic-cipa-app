@@ -30,16 +30,7 @@ trait OwnershipBundleTraits
             }else{
 
                 //  Get the ownership bundles
-                $ownershipBundles = \App\Models\OwnershipBundle::with(
-                    [
-                        //  Get the related shareholders, related owners and related addresses
-                        'shareholder.owner.addresses',
-                        'company' => function($query) {
-                            //  id is required here to mapping relationship
-                            $query->select(['id', 'uin', 'name', 'company_status', 'cipa_updated_at']);
-                        }
-                    ]);
-
+                $ownershipBundles = \App\Models\OwnershipBundle::with(['shareholder.owner.addresses', 'director', 'company']);
 
             }
 
@@ -162,7 +153,7 @@ trait OwnershipBundleTraits
              *************************************************/
 
             $filterByShareholderOwnerTypes = collect($statuses)->filter(function($status){
-                return in_array($status, ['individual', 'business', 'company']);
+                return in_array($status, ['individual', 'company', 'organisation']);
             })->toArray();
 
             if( count($filterByShareholderOwnerTypes) ){
@@ -175,17 +166,15 @@ trait OwnershipBundleTraits
              *  FILTER BY DIRECTOR         *
              *******************************/
 
-            if( in_array('current director', $statuses) ){
+            $filterByDirectorTypes = collect($statuses)->filter(function($status){
+                return in_array($status, [
+                    'current director', 'former director', 'not director'
+                ]);
+            })->toArray();
 
-                $ownershipBundles = $ownershipBundles->currentDirectors();
+            if( count($filterByDirectorTypes) ){
 
-            }elseif( in_array('former director', $statuses) ){
-
-                $ownershipBundles = $ownershipBundles->formerDirectors();
-
-            }elseif( in_array('not director', $statuses) ){
-
-                $ownershipBundles = $ownershipBundles->nonDirectors();
+                $ownershipBundles = $ownershipBundles->directorType($filterByDirectorTypes);
 
             }
 
@@ -207,6 +196,126 @@ trait OwnershipBundleTraits
                 $end_percentage = isset($data['end_percentage']) ? $data['end_percentage'] : null;
 
                 $ownershipBundles = $ownershipBundles->shareholderAllocationType($filterByShareholderAllocationTypes, $start_percentage, $end_percentage);
+
+            }
+
+            /*******************************
+             *  FILTER BY OWNERSHIP         *
+             *******************************/
+
+            $filterByShareholderSourcesOfShares = collect($statuses)->filter(function($status){
+                return in_array($status, [
+                    'shareholder to one', 'shareholder to many', 'shareholder to specific'
+                ]);
+            })->toArray();
+
+            if( count($filterByShareholderSourcesOfShares) ){
+
+                $min_source_of_shares = null;
+                $max_source_of_shares = null;
+                $exact_source_of_shares = null;
+
+                $source_of_shares_type = $data['source_of_shares_type'];
+
+                if( in_array(strtolower($source_of_shares_type), ['minimum', 'range']) ){
+
+                    $min_source_of_shares = $data['min_source_of_shares'] ?? null;
+
+                }
+
+                if( in_array(strtolower($source_of_shares_type), ['maximum', 'range']) ){
+
+                    $max_source_of_shares = $data['max_source_of_shares'] ?? null;
+
+                }
+
+                if( in_array(strtolower($source_of_shares_type), ['exact']) ){
+
+                    $exact_source_of_shares = $data['exact_source_of_shares'] ?? null;
+
+                }
+
+                $ownershipBundles = $ownershipBundles->hasSourcesOfShares($filterByShareholderSourcesOfShares, $min_source_of_shares, $max_source_of_shares, $exact_source_of_shares);
+
+            }
+
+            /**********************************************
+             *  FILTER BY SHAREHOLDER APPOINTMENT DATE    *
+             *********************************************/
+
+            if( in_array('shareholder appointed date', $statuses) && isset($data['shareholder_appointed_start_date']) && !empty($data['shareholder_appointed_start_date'])){
+
+                $start_date = $data['shareholder_appointed_start_date'];
+
+                $ownershipBundles = $ownershipBundles->shareholderAppointmentDate($start_date, null);
+
+            }
+
+            if( in_array('shareholder appointed date', $statuses) && isset($data['shareholder_appointed_end_date']) && !empty($data['shareholder_appointed_end_date'])){
+
+                $end_date = $data['shareholder_appointed_end_date'];
+
+                $ownershipBundles = $ownershipBundles->shareholderAppointmentDate(null, $end_date);
+
+            }
+
+            /*****************************************
+             *  FILTER BY SHAREHOLDER CEASED DATE    *
+             *****************************************/
+
+            if( in_array('shareholder ceased date', $statuses) && isset($data['shareholder_ceased_start_date']) && !empty($data['shareholder_ceased_start_date'])){
+
+                $start_date = $data['shareholder_ceased_start_date'];
+
+                $ownershipBundles = $ownershipBundles->shareholderCeasedDate($start_date, null);
+
+            }
+
+            if( in_array('shareholder ceased date', $statuses) && isset($data['shareholder_ceased_end_date']) && !empty($data['shareholder_ceased_end_date'])){
+
+                $end_date = $data['shareholder_ceased_end_date'];
+
+                $ownershipBundles = $ownershipBundles->shareholderCeasedDate(null, $end_date);
+
+            }
+
+            /*******************************************
+             *  FILTER BY DIRECTOR APPOINTMENT DATE    *
+             *******************************************/
+
+            if( in_array('director appointed date', $statuses) && isset($data['director_appointed_start_date']) && !empty($data['director_appointed_start_date'])){
+
+                $start_date = $data['director_appointed_start_date'];
+
+                $ownershipBundles = $ownershipBundles->directorAppointmentDate($start_date, null);
+
+            }
+
+            if( in_array('director appointed date', $statuses) && isset($data['director_appointed_end_date']) && !empty($data['director_appointed_end_date'])){
+
+                $end_date = $data['director_appointed_end_date'];
+
+                $ownershipBundles = $ownershipBundles->directorAppointmentDate(null, $end_date);
+
+            }
+
+            /**************************************
+             *  FILTER BY DIRECTOR CEASED DATE    *
+             **************************************/
+
+            if( in_array('director ceased date', $statuses) && isset($data['director_ceased_start_date']) && !empty($data['director_ceased_start_date'])){
+
+                $start_date = $data['director_ceased_start_date'];
+
+                $ownershipBundles = $ownershipBundles->directorCeasedDate($start_date, null);
+
+            }
+
+            if( in_array('director appointed date', $statuses) && isset($data['director_ceased_end_date']) && !empty($data['director_ceased_end_date'])){
+
+                $end_date = $data['director_ceased_end_date'];
+
+                $ownershipBundles = $ownershipBundles->directorCeasedDate(null, $end_date);
 
             }
 
