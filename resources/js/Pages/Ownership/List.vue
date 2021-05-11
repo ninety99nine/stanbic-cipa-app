@@ -246,12 +246,8 @@
                                 <i v-else-if="scope.row.owner_type == 'business'" class="el-icon-suitcase"></i>
                             </span>
                             <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.shareholder_name)">{{ scope.row.shareholder_name }}</span>
-                            <template v-if="scope.row.owner_type == 'company' && scope.row.shareholder_uin">
-                                <br />
-                                <a v-if="scope.row.shareholder_uin" :href="route('companies', {search: scope.row.shareholder_uin, search_type: 'internal'})" class="text-blue-800 text-xs underline cursor-pointer">
-                                    {{ scope.row.shareholder_uin }}
-                                </a>
-                            </template>
+                            <el-tag v-if="scope.row.total_shareholder_occurances > 1" size="mini" type="warning" class="ml-2">x{{ scope.row.total_shareholder_occurances }} duplicates</el-tag>
+                            <el-tag v-if="scope.row.is_shareholder_to_self" size="mini" type="warning" class="ml-2">shareholder to itself</el-tag>
                         </div>
                     </template>
                 </el-table-column>
@@ -269,9 +265,6 @@
                         <span>{{ scope.row.is_director ? 'Yes' : 'No' }}</span>
                     </template>
                 </el-table-column>
-
-is_director
-
                 <el-table-column min-width="210" prop="shareholder_appointment_date" label="Shareholder appointed date">
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
@@ -463,6 +456,19 @@ is_director
                             {
                                 name: 'Shareholder to specific number',
                                 value: 'shareholder to specific'
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Duplicates',
+                        options: [
+                            {
+                                name: 'Duplicate shareholder names',
+                                value: 'duplicate shareholder names'
+                            },
+                            {
+                                name: 'Shareholder to itself',
+                                value: 'shareholder to itself'
                             }
                         ]
                     },
@@ -780,6 +786,8 @@ is_director
                             number_of_shares: ownership_bundle.number_of_shares,
                             total_shares: ownership_bundle.total_shares,
                             shareholder_name: ownership_bundle.shareholder_name,
+                            total_shareholder_occurances: ownership_bundle.total_shareholder_occurances,
+                            is_shareholder_to_self: ownership_bundle.is_shareholder_to_self,
 
                             //  Company information
                             company_uin: ownership_bundle.company.uin,

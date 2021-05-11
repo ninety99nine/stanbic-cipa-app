@@ -178,6 +178,26 @@ trait OwnershipBundleTraits
 
             }
 
+            /*******************************************
+             *  FILTER BY DUPLICATE SHAREHOLDER NAMES  *
+             ******************************************/
+
+            if( in_array('duplicate shareholder names', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->duplicateShareholderNames();
+
+            }
+
+            /*************************************
+             *  FILTER BY SHAREHOLDER TO ITSELF  *
+             *************************************/
+
+            if( in_array('shareholder to itself', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->isShareholderToSelf();
+
+            }
+
             /********************************************
              *  FILTER BY SHAREHOLDER ALLOCATION TYPE   *
              ********************************************/

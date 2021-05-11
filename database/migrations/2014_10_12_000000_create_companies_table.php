@@ -56,6 +56,28 @@ class CreateCompaniesTable extends Migration
             $table->timestamp('cipa_updated_at')->nullable();
             $table->timestamps();
 
+            /**
+             *  INDEXES
+             */
+            $table->unique('uin');
+            $table->unique('name');
+            $table->index('company_status');
+            $table->index('exempt');
+            $table->index('foreign_company');
+            $table->index('company_type');
+            $table->index('company_sub_type');
+            $table->index('old_company_number');
+            $table->index('own_constitution_yn');
+            $table->index('business_sector');
+            $table->index('annual_return_filing_month');
+            $table->index('annual_return_last_filed_date');
+            $table->index('marked_as_client');
+
+            $table->index('incorporation_date');
+            $table->index('re_registration_date');
+            $table->index('dissolution_date');
+            $table->index('cipa_updated_at');
+
         });
     }
 

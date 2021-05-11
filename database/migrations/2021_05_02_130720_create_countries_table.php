@@ -18,6 +18,12 @@ class CreateCountriesTable extends Migration
             $table->string('code')->nullable();
             $table->string('name')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('code');
+            $table->index('name');
         });
     }
 

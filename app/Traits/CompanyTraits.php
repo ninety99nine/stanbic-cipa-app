@@ -1260,11 +1260,11 @@ trait CompanyTraits
                 return $ownership_bundle['number_of_shares'];
             })->sum();
 
-            //  Get the related shareholders and their owners
-            $shareholders = Shareholder::where('shareholder_of_company_id', $this->id)->with('owner')->get();
+            //  Get the related shareholders and their owners (The shareholders are already eager loaded)
+            $shareholders = $this->shareholders;
 
-            //  Get the related directors and their owners
-            $directors = Director::where('director_of_company_id', $this->id)->with('individual')->get();
+            //  Get the related directors and their owners (The directors are already eager loaded)
+            $directors = $this->directors;
 
             /**
              *  Foreach ownership bundle
@@ -1283,6 +1283,14 @@ trait CompanyTraits
              *      }
              *  }
              */
+
+            \Illuminate\Support\Facades\Log::debug('Total Ownership Bundles: '. count($ownership_bundles));
+
+            /**
+             *  Track the number of times the shareholder name appears
+             */
+            $occurances = [];
+
             foreach ($ownership_bundles as $ownership_bundle) {
 
                 /**
@@ -1295,6 +1303,7 @@ trait CompanyTraits
                  *      "owners":null
                  *  }
                  */
+
                 if( is_null($ownership_bundle['owners']) == false ){
 
                     /****************************************
@@ -1303,11 +1312,20 @@ trait CompanyTraits
 
                     $shareholder_name = trim($ownership_bundle['owners']['owner']['shareholder_name']);
 
+                    /**
+                     *  Check if this shareholder is the same as the company name.
+                     *  This would mean that the copmany is a shareholder to itself,
+                     *  which is strange but happens with the data we receive.
+                     */
+                    $is_shareholder_to_self = ($shareholder_name == $this->name);
+
+                    \Illuminate\Support\Facades\Log::debug('Ownership Bundle For: '. $shareholder_name);
+
                     //  Find the matching shareholder
-                    $matched_shareholder = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
+                    $matched_shareholders = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
 
                         //  If the owner is a company or organisation
-                        if( in_array($shareholder->owner_type, ['company', 'organisation']) ){
+                        if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
 
                             \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->name);
 
@@ -1327,7 +1345,7 @@ trait CompanyTraits
                     });
 
                     //  Retrieve the matching shareholder id
-                    $shareholder_id = count($matched_shareholder) ? $matched_shareholder->first()->id : null;
+                    $shareholder_id = count($matched_shareholders) ? $matched_shareholders->first()->id : null;
 
                     //  Set the director_id to "null" by default
                     $director_id = null;
@@ -1348,6 +1366,37 @@ trait CompanyTraits
 
                     }
 
+                    $number_of_shares = $ownership_bundle['number_of_shares'];
+
+                    /**
+                     *  Handle duplicate occurances of the same shareholder.
+                     *  Some shareholders can be duplicated, so we want to
+                     *  count the total number of duplicate occurances of
+                     *  the same shareholder and add up their number of
+                     *  shares.
+                     */
+                    if( isset($occurances[$shareholder_id]) ){
+
+                        $total_occurances = ($occurances[$shareholder_id]['total_occurances'] + 1);
+
+                        $total_number_of_shares = ($occurances[$shareholder_id]['total_number_of_shares'] + $number_of_shares);
+
+                        //  Set the number of occurances and number of shares for this duplciate shareholder
+                        $occurances[$shareholder_id] = [
+                            'total_occurances' => $total_occurances,
+                            'total_number_of_shares' => $total_number_of_shares
+                        ];
+
+                    }else{
+
+                        //  Set the number of occurances for this shareholder
+                        $occurances[$shareholder_id] = [
+                            'total_occurances' => 1,
+                            'total_number_of_shares' => $number_of_shares
+                        ];
+
+                    }
+
                     $identifiers = [
                         'shareholder_name' => $shareholder_name,
                         'shareholder_of_company_id' => $this->id
@@ -1360,7 +1409,10 @@ trait CompanyTraits
                             'director_id' => $director_id,
                             'total_shares' => $total_shares,
                             'shareholder_id' => $shareholder_id,
-                            'percentage_of_shares' => round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2)
+                            'is_shareholder_to_self' => $is_shareholder_to_self,
+                            'number_of_shares' => $occurances[$shareholder_id]['total_number_of_shares'],
+                            'total_shareholder_occurances' => $occurances[$shareholder_id]['total_occurances'],
+                            'percentage_of_shares' => round($occurances[$shareholder_id]['total_number_of_shares'] / $total_shares * 100, 2)
                         ]
                     );
 
@@ -1788,7 +1840,7 @@ trait CompanyTraits
             'fields' => [
                 'identifier' => 'cipa_identifier',
                 'NumberOfShares' => 'number_of_shares',
-                'OwnershipType' => 'ownership_type',
+                'OwnershipType' => 'cipa_ownership_type',
                 'Owners' => [
                     'name' => 'owners',
                     'fields' => [

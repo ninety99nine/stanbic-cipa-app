@@ -20,6 +20,13 @@ class CreateIndividualsTable extends Migration
             $table->string('middle_names')->nullable();
             $table->string('last_name')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('first_name');
+            $table->index('middle_names');
+            $table->index('last_name');
         });
     }
 

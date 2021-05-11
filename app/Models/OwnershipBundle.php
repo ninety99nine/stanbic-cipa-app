@@ -19,8 +19,8 @@ class OwnershipBundle extends Model
      */
     protected $fillable = [
         'cipa_identifier', 'percentage_of_shares', 'number_of_shares', 'total_shares',
-        'ownership_type', 'shareholder_name', 'shareholder_id', 'shareholder_of_company_id',
-        'director_id', 'is_director'
+        'total_shareholder_occurances', 'is_shareholder_to_self', 'cipa_ownership_type',
+        'shareholder_name', 'shareholder_id', 'shareholder_of_company_id', 'director_id'
     ];
 
     /*
@@ -60,6 +60,24 @@ class OwnershipBundle extends Model
         return $query->whereHas('company', function (Builder $query) use ($searchTerm){
             $query->search($searchTerm);
         });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles with duplicate shareholder names
+     */
+    public function scopeDuplicateShareholderNames($query)
+    {
+        return $query->where('total_shareholder_occurances', '>=', 2);
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company is shareholder to itself
+     */
+    public function scopeIsShareholderToSelf($query)
+    {
+        return $query->where('is_shareholder_to_self', '1');
     }
 
     /*
@@ -392,5 +410,10 @@ class OwnershipBundle extends Model
     public function getPercentageOfSharesAttribute($value)
     {
         return round($value, 2);
+    }
+
+    public function setShareholderNameAttribute($value)
+    {
+        $this->attributes['shareholder_name'] = trim($value);
     }
 }

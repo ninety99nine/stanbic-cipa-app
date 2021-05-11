@@ -19,6 +19,13 @@ class CreateOrganisationsTable extends Migration
             $table->string('registration_number')->nullable();
             $table->unsignedBigInteger('country_id')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('name');
+            $table->index('registration_number');
+            $table->index('country_id');
         });
     }
 

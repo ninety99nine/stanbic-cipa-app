@@ -28,6 +28,17 @@ class CreateAddressesTable extends Migration
             $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('type');
+            $table->index('care_of');
+            $table->index('line_1');
+            $table->index('line_2');
+            $table->index('region_id');
+            $table->index('country_id');
+            $table->index(['owner_id', 'owner_type']);
         });
     }
 

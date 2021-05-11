@@ -17,6 +17,11 @@ class CreateBusinessesTable extends Migration
             $table->id();
             $table->string('name')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('name');
         });
     }
 

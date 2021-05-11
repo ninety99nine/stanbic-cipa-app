@@ -19,13 +19,25 @@ class CreateOwnershipBundlesTable extends Migration
             $table->decimal('percentage_of_shares', 5, 2)->nullable();
             $table->unsignedBigInteger('number_of_shares')->nullable();
             $table->unsignedBigInteger('total_shares')->nullable();
-            $table->string('ownership_type')->nullable();
+            $table->unsignedTinyInteger('total_shareholder_occurances')->nullable();
+            $table->boolean('is_shareholder_to_self')->default(0);
+            $table->string('cipa_ownership_type')->nullable();
             $table->string('shareholder_name')->nullable();
             $table->unsignedBigInteger('shareholder_id')->nullable();
             $table->unsignedBigInteger('shareholder_of_company_id')->nullable();
             $table->unsignedBigInteger('director_id')->nullable();
-            $table->char('is_director', 1)->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('percentage_of_shares');
+            $table->index('total_shareholder_occurances');
+            $table->index('is_shareholder_to_self');
+            $table->index('shareholder_name');
+            $table->index('shareholder_id');
+            $table->index('shareholder_of_company_id');
+            $table->index('director_id');
         });
     }
 

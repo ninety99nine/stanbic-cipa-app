@@ -21,6 +21,14 @@ class CreateDirectorsTable extends Migration
             $table->datetime('ceased_date')->nullable();
             $table->unsignedBigInteger('director_of_company_id')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('individual_id');
+            $table->index('appointment_date');
+            $table->index('ceased_date');
+            $table->index('director_of_company_id');
         });
     }
 

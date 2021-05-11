@@ -149,4 +149,19 @@ class Individual extends Model
         })->join(' | ');
     }
 
+    public function setFirstNameAttribute($value)
+    {
+        $this->attributes['first_name'] = trim($value);
+    }
+
+    public function setMiddleNamesAttribute($value)
+    {
+        $this->attributes['middle_names'] = trim($value);
+    }
+
+    public function setLastNameAttribute($value)
+    {
+        $this->attributes['last_name'] = trim($value);
+    }
+
 }

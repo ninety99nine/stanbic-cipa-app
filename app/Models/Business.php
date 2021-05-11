@@ -40,4 +40,9 @@ class Business extends Model
     protected $appends = [
         'resource_type'
     ];
+
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = trim($value);
+    }
 }

@@ -22,6 +22,14 @@ class CreateSecretariesTable extends Migration
             $table->unsignedBigInteger('owner_id')->nullable();
             $table->string('owner_type')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('ceased_date');
+            $table->index('appointment_date');
+            $table->index(['owner_id', 'owner_type']);
+            $table->index('secretary_of_company_id');
         });
     }
 

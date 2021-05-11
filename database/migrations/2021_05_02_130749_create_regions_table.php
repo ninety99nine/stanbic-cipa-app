@@ -17,6 +17,11 @@ class CreateRegionsTable extends Migration
             $table->id();
             $table->string('code')->nullable();
             $table->timestamps();
+
+            /**
+             *  INDEXES
+             */
+            $table->index('code');
         });
     }
 
