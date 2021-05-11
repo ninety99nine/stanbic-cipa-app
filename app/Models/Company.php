@@ -13,6 +13,13 @@ class Company extends Model
     use HasFactory, CommonTraits, CompanyTraits;
 
     /**
+     * The relationships that should always be loaded.
+     *
+     * @var array
+     */
+    protected $with = ['addresses'];
+
+    /**
      * The table associated with the model.
      *
      * @var string
@@ -45,10 +52,7 @@ class Company extends Model
         'incorporation_date', 're_registration_date', 'old_company_number', 'dissolution_date', 'own_constitution_yn',
         'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at',
 
-        'marked_as_client',
-
-        'registered_office_address', 'postal_address', 'principal_place_of_business',
-        'ownership_bundles', 'directors', 'shareholders', 'secretaries'
+        'marked_as_client'
     ];
 
     /*
@@ -480,110 +484,37 @@ class Company extends Model
         return $value ? Carbon::parse($value)->format('d M Y') : null;
     }
 
-    public function getRegisteredOfficeAddressAttribute($value)
+    public function getRegisteredOfficeAddressAttribute()
     {
-        $address = '';
+        //  Foreach address return the address line
+        return collect($this->addresses)->where('type', 'registered_office_address')->map(function($address){
 
-        $value = json_decode($value, true);
+            return $address->address_line;
 
-        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
-
-        foreach ($addressFields as $field) {
-
-            if( isset($value[$field]) && !empty($value[$field]) ){
-
-                $address .= ($address ? ', ': '') . $value[$field];
-
-            }
-        }
-
-        return $address;
+        //  Join multiple addresses with the symbol below
+        })->join(' | ');
     }
 
-    public function getPostalAddressAttribute($value)
+    public function getPostalAddressAttribute()
     {
-        $address = '';
+        //  Foreach address return the address line
+        return collect($this->addresses)->where('type', 'postal_address')->map(function($address){
 
-        $value = json_decode($value, true);
+            return $address->address_line;
 
-        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
-
-        foreach ($addressFields as $field) {
-
-            if( isset($value[$field]) && !empty($value[$field]) ){
-
-                $address .= ($address ? ', ': '') . $value[$field];
-
-            }
-        }
-
-        return $address;
+        //  Join multiple addresses with the symbol below
+        })->join(' | ');
     }
 
-    public function getPrincipalPlaceOfBusinessAttribute($value)
+    public function getPrincipalPlaceOfBusinessAttribute()
     {
-        $address = '';
+        //  Foreach address return the address line
+        return collect($this->addresses)->where('type', 'principal_place_of_business')->map(function($address){
 
-        $value = json_decode($value, true);
+            return $address->address_line;
 
-        $addressFields = ['care_of', 'line_1', 'line_2', 'region_code', 'post_code', 'country'];
-
-        foreach ($addressFields as $field) {
-
-            if( isset($value[$field]) && !empty($value[$field]) ){
-
-                $address .= ($address ? ', ': '') . $value[$field];
-
-            }
-        }
-
-        return $address;
-    }
-
-    public function getOwnershipBundlesAttribute($value)
-    {
-        $value = json_decode($value, true);
-
-        //  If we can access the "identifier" field directly then convert into an Array
-        $ownership_bundles = isset($value['identifier']) ? [$value]: $value;
-
-        //  Calculate the total number of shares
-        $total_shares = collect($ownership_bundles)->map(function($ownership_bundle){
-            return $ownership_bundle['number_of_shares'];
-        })->sum();
-
-        return collect($ownership_bundles)->map(function($ownership_bundle) use ($total_shares) {
-
-            //  Re-calculate the number of shares out of 100% to 2 decimal places
-            $ownership_bundle['number_of_shares'] = round($ownership_bundle['number_of_shares'] / $total_shares * 100, 2).'%';
-
-            //  Return the updated ownership bundle
-            return $ownership_bundle;
-        });
-    }
-
-    public function getDirectorsAttribute($value)
-    {
-        $value = json_decode($value, true);
-
-        //  If we can access the "identifier" field directly then convert into an Array
-        return isset($value['identifier']) ? [$value]: $value;
-    }
-
-    public function getShareholdersAttribute($value)
-    {
-        $value = json_decode($value, true);
-
-        //  If we can access the "identifier" field directly then convert into an Array
-        return isset($value['identifier']) ? [$value]: $value;
-    }
-
-    public function getSecretariesAttribute($value)
-    {
-        $value = json_decode($value, true);
-
-        //  If we can access the "identifier" field directly then convert into an Array
-        return isset($value['identifier']) ? [$value]: $value;
+        //  Join multiple addresses with the symbol below
+        })->join(' | ');
     }
 
     /**

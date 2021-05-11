@@ -53,6 +53,8 @@ class Kernel extends ConsoleKernel
                  */
                 $companies = \App\Models\Company::with(['directors', 'shareholders'])->oldest('cipa_updated_at');
 
+                //  ->without('addresses') or ->withOnly(['directors', 'shareholders']) to not eager load addresses
+
                 Log::debug('Preparing to update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Found: '.$companies->count());
 
                 //  Only query 100 companies at a time

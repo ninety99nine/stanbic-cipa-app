@@ -1255,16 +1255,21 @@ trait CompanyTraits
         //  If we have a list of ownership bundles
         if( !empty($ownership_bundles) ){
 
+            /**
+             *  Refresh the Company Model to reload the shareholder and director
+             *  relationships since we may have new records that were created.
+             */
+            $this->refresh();
+
             //  Calculate the total number of shares
             $total_shares = collect($ownership_bundles)->map(function($ownership_bundle){
                 return $ownership_bundle['number_of_shares'];
             })->sum();
 
-            //  Get the related shareholders and their owners (The shareholders are already eager loaded)
-            $shareholders = $this->shareholders;
-
-            //  Get the related directors and their owners (The directors are already eager loaded)
-            $directors = $this->directors;
+            /**
+             *  Track the number of times the same shareholder name appears
+             */
+            $occurances = [];
 
             /**
              *  Foreach ownership bundle
@@ -1283,13 +1288,6 @@ trait CompanyTraits
              *      }
              *  }
              */
-
-            \Illuminate\Support\Facades\Log::debug('Total Ownership Bundles: '. count($ownership_bundles));
-
-            /**
-             *  Track the number of times the shareholder name appears
-             */
-            $occurances = [];
 
             foreach ($ownership_bundles as $ownership_bundle) {
 
@@ -1322,7 +1320,7 @@ trait CompanyTraits
                     \Illuminate\Support\Facades\Log::debug('Ownership Bundle For: '. $shareholder_name);
 
                     //  Find the matching shareholder
-                    $matched_shareholders = collect($shareholders)->filter(function($shareholder) use ($shareholder_name){
+                    $matched_shareholders = collect($this->shareholders)->filter(function($shareholder) use ($shareholder_name){
 
                         //  If the owner is a company or organisation
                         if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
@@ -1350,7 +1348,7 @@ trait CompanyTraits
                     //  Set the director_id to "null" by default
                     $director_id = null;
 
-                    foreach ($directors as $director) {
+                    foreach (collect($this->directors)->toArray() as $director) {
 
                         //  If we have the linked individual
                         if( $director->individual ){
