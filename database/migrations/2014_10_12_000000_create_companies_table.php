@@ -43,15 +43,6 @@ class CreateCompaniesTable extends Migration
 
             $table->boolean('marked_as_client')->default(0);
 
-            $table->json('registered_office_address')->nullable();
-            $table->json('postal_address')->nullable();
-            $table->json('principal_place_of_business')->nullable();
-
-            $table->json('ownership_bundles')->nullable();
-            $table->json('directors')->nullable();
-            $table->json('shareholders')->nullable();
-            $table->json('secretaries')->nullable();
-
             $table->json('details')->nullable();
             $table->timestamp('cipa_updated_at')->nullable();
             $table->timestamps();

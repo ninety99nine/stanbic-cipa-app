@@ -1255,16 +1255,17 @@ trait CompanyTraits
         //  If we have a list of ownership bundles
         if( !empty($ownership_bundles) ){
 
-            /**
-             *  Refresh the Company Model to reload the shareholder and director
-             *  relationships since we may have new records that were created.
-             */
-            $this->refresh();
-
             //  Calculate the total number of shares
             $total_shares = collect($ownership_bundles)->map(function($ownership_bundle){
                 return $ownership_bundle['number_of_shares'];
             })->sum();
+
+            /**
+             *  Load the Company Model shareholder and director relationships
+             *  excluding the nested addresses that are normally loaded by
+             *  default.
+             */
+            $this->load(['directors.individual','shareholders.owner']);
 
             /**
              *  Track the number of times the same shareholder name appears
@@ -1325,14 +1326,10 @@ trait CompanyTraits
                         //  If the owner is a company or organisation
                         if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
 
-                            \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->name);
-
                             return ($shareholder_name == trim($shareholder->owner->name));
 
                         //  If the owner is an individual
                         }elseif( $shareholder->owner_type == 'individual' ){
-
-                            \Illuminate\Support\Facades\Log::debug($shareholder_name .' == '. $shareholder->owner->full_name);
 
                             return ($shareholder_name == trim($shareholder->owner->full_name));
 
@@ -1345,24 +1342,22 @@ trait CompanyTraits
                     //  Retrieve the matching shareholder id
                     $shareholder_id = count($matched_shareholders) ? $matched_shareholders->first()->id : null;
 
-                    //  Set the director_id to "null" by default
-                    $director_id = null;
-
-                    foreach (collect($this->directors)->toArray() as $director) {
+                    //  Find the matching director
+                    $matched_directors = collect($this->directors)->filter(function($director) use ($shareholder_name){
 
                         //  If we have the linked individual
                         if( $director->individual ){
 
-                            //  If the shareholder name matches the linked individual full name
-                            if( ($shareholder_name == trim($director->individual->full_name)) ){
-
-                                $director_id = $director->id;
-
-                            }
+                            return $shareholder_name == trim($director->individual->full_name);
 
                         }
 
-                    }
+                        return false;
+
+                    });
+
+                    //  Retrieve the matching director id
+                    $director_id = count($matched_directors) ? $matched_directors->first()->id : null;
 
                     $number_of_shares = $ownership_bundle['number_of_shares'];
 
@@ -1394,6 +1389,9 @@ trait CompanyTraits
                         ];
 
                     }
+
+                    \Illuminate\Support\Facades\Log::debug('OCCURANCES');
+                    \Illuminate\Support\Facades\Log::debug( json_encode($occurances) );
 
                     $identifiers = [
                         'shareholder_name' => $shareholder_name,

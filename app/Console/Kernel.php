@@ -51,7 +51,7 @@ class Kernel extends ConsoleKernel
                  *  to search the matching record on CIPA side ($this->uin). The Eloquest instance can
                  *  then be used to update the company e.g $this->update([ ... ]);
                  */
-                $companies = \App\Models\Company::with(['directors', 'shareholders'])->oldest('cipa_updated_at');
+                $companies = \App\Models\Company::where('uin', 'BW00001430610')->oldest('cipa_updated_at');
 
                 //  ->without('addresses') or ->withOnly(['directors', 'shareholders']) to not eager load addresses
 
