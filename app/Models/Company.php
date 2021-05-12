@@ -187,6 +187,19 @@ class Company extends Model
 
     /*
      *  Scope:
+     *  Returns companies that match the given company sub type
+     */
+    public function scopeBusinessSector($query, $status)
+    {
+        if( is_array($status) ){
+            return $query->whereIn('business_sector', $status);
+        }else{
+            return $query->where('business_sector', $status);
+        }
+    }
+
+    /*
+     *  Scope:
      *  Returns companies that are imported from cipa
      */
     public function scopeImportedFromCipa($query)

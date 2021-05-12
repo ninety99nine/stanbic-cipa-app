@@ -391,6 +391,10 @@
             ownership_bundles: {
                 type: Object,
                 default: null
+            },
+            dynamic_filter_options: {
+                type: Object,
+                default: null
             }
         },
         components:{ JetButton },
@@ -422,21 +426,20 @@
                 selectedFilters: [],
                 filters: [
                     {
-                        label: 'Company Status',
-                        options: [
-                            {
-                                value: 'Registered'
-                            },
-                            {
-                                value: 'Cancelled'
-                            },
-                            {
-                                value: 'Removed'
-                            },
-                            {
-                                value: 'Not Found'
-                            }
-                        ]
+                        label: 'Company Statuses',
+                        options: this.companyStatusOptions()
+                    },
+                    {
+                        label: 'Business Sectors',
+                        options: this.businessSectorsOptions()
+                    },
+                    {
+                        label: 'Company Type',
+                        options: this.companyTypesOptions()
+                    },
+                    {
+                        label: 'Sub Type',
+                        options: this.companySubTypesOptions()
                     },
                     {
                         label: 'Compliance Status',
@@ -863,6 +866,34 @@
 
         },
         methods:{
+            companyStatusOptions(){
+                return this.dynamic_filter_options.company_statuses.map((status) => {
+                    return {
+                        value: status
+                    }
+                });
+            },
+            companySubTypesOptions(){
+                return this.dynamic_filter_options.company_sub_types.map((type) => {
+                    return {
+                        value: type
+                    }
+                });
+            },
+            companyTypesOptions(){
+                return this.dynamic_filter_options.company_types.map((type) => {
+                    return {
+                        value: type
+                    }
+                });
+            },
+            businessSectorsOptions(){
+                return this.dynamic_filter_options.business_sectors.map((type) => {
+                    return {
+                        value: type
+                    }
+                });
+            },
             changePage(val) {
                 this.currentPage = val;
 

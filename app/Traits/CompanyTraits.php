@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use App\Exports\CompaniesExport;
 use App\Imports\CompaniesImport;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
 use App\Http\Resources\Company as CompanyResource;
@@ -368,8 +369,10 @@ trait CompanyTraits
              *  FILTER BY COMPANY STATUS   *
              *******************************/
 
-            $filterByCompanyStatuses = collect($statuses)->filter(function($status){
-                return in_array($status, ['registered', 'cancelled', 'removed', 'not found']);
+            $company_statuses = collect(DB::table('companies')->whereNotNull('company_status')->groupBy('company_status')->pluck('company_status'))->filter()->toArray();
+
+            $filterByCompanyStatuses = collect($statuses)->filter(function($status) use ($company_statuses) {
+                return in_array($status, $company_statuses);
             })->toArray();
 
             if( count($filterByCompanyStatuses) ){
@@ -382,13 +385,15 @@ trait CompanyTraits
              *  FILTER BY COMPANY TYPE     *
              *******************************/
 
-            $filterByCompanyType = collect($statuses)->filter(function($status){
-                return in_array($status, ['private company', 'llc company']);
+            $company_types = collect(DB::table('companies')->whereNotNull('company_type')->groupBy('company_type')->pluck('company_type'))->filter()->toArray();
+
+            $filterByCompanyTypes = collect($statuses)->filter(function($status) use ($company_types) {
+                return in_array($status, $company_types);
             })->toArray();
 
-            if( count($filterByCompanyType) ){
+            if( count($filterByCompanyTypes) ){
 
-                $companies = $companies->companyType($filterByCompanyType);
+                $companies = $companies->companyType($filterByCompanyTypes);
 
             }
 
@@ -396,13 +401,31 @@ trait CompanyTraits
              *  FILTER BY COMPANY SUB TYPE *
              *******************************/
 
-            $filterByCompanySubType = collect($statuses)->filter(function($status){
-                return in_array($status, ['type a', 'type b']);
+            $company_sub_types = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+
+            $filterByCompanySubType = collect($statuses)->filter(function($status) use ($company_sub_types) {
+                return in_array($status, $company_sub_types);
             })->toArray();
 
             if( count($filterByCompanySubType) ){
 
                 $companies = $companies->companySubType($filterByCompanySubType);
+
+            }
+
+            /**************************************
+             *  FILTER BY COMPANY BUSINESS SECTOR *
+             *************************************/
+
+            $business_sectors = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+
+            $filterByBusinessSectors = collect($statuses)->filter(function($status) use ($business_sectors) {
+                return in_array($status, $business_sectors);
+            })->toArray();
+
+            if( count($filterByBusinessSectors) ){
+
+                $companies = $companies->businessSector($filterByBusinessSectors);
 
             }
 

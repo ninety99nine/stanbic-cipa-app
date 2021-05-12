@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
@@ -50,6 +51,9 @@ class CompanyController extends Controller
     {
         try {
 
+            /**
+             *  Set the progress totals
+             */
             $total = Company::count();
             $total_imported = Company::importedFromCipa()->count();
             $total_not_imported = Company::notImportedFromCipa()->count();
@@ -66,12 +70,39 @@ class CompanyController extends Controller
                 'total_recently_updated_percentage' => round( ($total ? ($total_recently_updated / $total * 100) : 0), 2 ),
             ];
 
+            /**
+             *  Set the dynamic filter options
+             */
+            $company_statuses = collect(
+                DB::table('companies')->whereNotNull('company_status')->groupBy('company_status')->pluck('company_status')
+            )->filter();
+
+            $company_types = collect(
+                DB::table('companies')->whereNotNull('company_type')->groupBy('company_type')->pluck('company_type')
+            )->filter();
+
+            $company_sub_types = collect(
+                DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type')
+            )->filter();
+
+            $business_sectors = collect(
+                DB::table('companies')->whereNotNull('business_sector')->groupBy('business_sector')->pluck('business_sector')
+            )->filter();
+
+            $dynamic_filter_options = [
+                'company_statuses' => $company_statuses,
+                'company_sub_types' => $company_sub_types,
+                'company_types' => $company_types,
+                'business_sectors' => $business_sectors
+            ];
+
             //  Return a list of companies
             $companies = (new Company)->getResources($request);
 
             return Inertia::render('Companies/List', [
                 'companies' => $companies,
-                'progress_totals' => $progress_totals
+                'progress_totals' => $progress_totals,
+                'dynamic_filter_options' => $dynamic_filter_options,
             ]);
 
         } catch (\Exception $e) {

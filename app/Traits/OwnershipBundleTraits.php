@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Exports\CompaniesExport;
 use App\Imports\CompaniesImport;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -154,14 +155,70 @@ trait OwnershipBundleTraits
              *  FILTER BY COMPANY STATUS   *
              *******************************/
 
-            $filterByCompanyStatuses = collect($statuses)->filter(function($status){
-                return in_array($status, ['registered', 'cancelled', 'removed', 'not found']);
+            $company_statuses = collect(DB::table('companies')->whereNotNull('company_status')->groupBy('company_status')->pluck('company_status'))->filter()->toArray();
+
+            $filterByCompanyStatuses = collect($statuses)->filter(function($status) use ($company_statuses) {
+                return in_array($status, $company_statuses);
             })->toArray();
 
             if( count($filterByCompanyStatuses) ){
 
                 $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) use ($filterByCompanyStatuses) {
                     $query->companyStatus($filterByCompanyStatuses);
+                });
+
+            }
+
+            /*******************************
+             *  FILTER BY COMPANY TYPE     *
+             *******************************/
+
+            $company_types = collect(DB::table('companies')->whereNotNull('company_type')->groupBy('company_type')->pluck('company_type'))->filter()->toArray();
+
+            $filterByCompanyTypes = collect($statuses)->filter(function($status) use ($company_types) {
+                return in_array($status, $company_types);
+            })->toArray();
+
+            if( count($filterByCompanyTypes) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) use ($filterByCompanyTypes) {
+                    $query->companyType($filterByCompanyTypes);
+                });
+
+            }
+
+            /*******************************
+             *  FILTER BY COMPANY SUB TYPE *
+             *******************************/
+
+            $company_sub_types = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+
+            $filterByCompanySubTypes = collect($statuses)->filter(function($status) use ($company_sub_types) {
+                return in_array($status, $company_sub_types);
+            })->toArray();
+
+            if( count($filterByCompanySubTypes) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) use ($filterByCompanySubTypes) {
+                    $query->companySubType($filterByCompanySubTypes);
+                });
+
+            }
+
+            /**************************************
+             *  FILTER BY COMPANY BUSINESS SECTOR *
+             *************************************/
+
+            $business_sectors = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+
+            $filterByBusinessSectors = collect($statuses)->filter(function($status) use ($business_sectors) {
+                return in_array($status, $business_sectors);
+            })->toArray();
+
+            if( count($filterByBusinessSectors) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) use ($filterByBusinessSectors) {
+                    $query->businessSector($filterByBusinessSectors);
                 });
 
             }
