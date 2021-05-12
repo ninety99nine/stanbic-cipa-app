@@ -867,28 +867,28 @@
         },
         methods:{
             companyStatusOptions(){
-                return this.dynamic_filter_options.company_statuses.map((status) => {
+                return ((this.dynamic_filter_options || {}).company_statuses || []).map((status) => {
                     return {
                         value: status
                     }
                 });
             },
             companySubTypesOptions(){
-                return this.dynamic_filter_options.company_sub_types.map((type) => {
+                return ((this.dynamic_filter_options || {}).company_sub_types || []).map((type) => {
                     return {
                         value: type
                     }
                 });
             },
             companyTypesOptions(){
-                return this.dynamic_filter_options.company_types.map((type) => {
+                return ((this.dynamic_filter_options || {}).company_types || []).map((type) => {
                     return {
                         value: type
                     }
                 });
             },
             businessSectorsOptions(){
-                return this.dynamic_filter_options.business_sectors.map((type) => {
+                return ((this.dynamic_filter_options || {}).business_sectors || []).map((type) => {
                     return {
                         value: type
                     }
