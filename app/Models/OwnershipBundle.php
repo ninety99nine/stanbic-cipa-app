@@ -182,6 +182,117 @@ class OwnershipBundle extends Model
 
     /*
      *  Scope:
+     *  Returns ownership bundles where company has given number of shareholders
+     */
+    public function scopeHasShareholders($query, $types, $min = null, $max = null, $equal = null)
+    {
+        return $query->where(function($query) use ($types, $min, $max, $equal){
+
+            if( in_array('has one shareholder', $types) ){
+
+                $query = $query->orWhere(function (Builder $query) {
+                            return $query->hasOneShareholder();
+                        });
+
+            }
+
+            if( in_array('has many shareholders', $types) ){
+
+                $query = $query->orWhere(function (Builder $query) {
+                            return $query->hasManyShareholders();
+                        });
+
+            }
+
+            if( in_array('has specific shareholders', $types) ){
+
+                if( !is_null($min) ){
+
+                    $query = $query->hasMinShareholders($min);
+
+                }
+
+                if( !is_null($max) ){
+
+                    $query = $query->hasMaxShareholders($max);
+
+                }
+
+                if( !is_null($equal) ){
+
+                    $query = $query->hasExactShareholders($equal);
+
+                }
+
+            }
+
+        });
+
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company has one shareholder
+     */
+    public function scopeHasOneShareholder($query)
+    {
+        return $query->whereHas('company', function (Builder $query) {
+            $query->has('shareholders', '=', 1);
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company has many shareholders
+     */
+    public function scopeHasManyShareholders($query)
+    {
+        return $query->whereHas('company', function (Builder $query) {
+            $query->has('shareholders', '>=', 2);
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company has exact number of shareholders
+     */
+    public function scopeHasExactShareholders($query, $number)
+    {
+        return $query->whereHas('company', function (Builder $query) use ($number){
+            $query->has('shareholders', '=', $number);
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company has minimum number of shareholders
+     */
+    public function scopeHasMinShareholders($query, $number)
+    {
+        return $query->whereHas('company', function (Builder $query) use ($number){
+            $query->has('shareholders', '>=', $number);
+        });
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company has minimum number of shareholders
+     */
+    public function scopeHasMaxShareholders($query, $number)
+    {
+        return $query->whereHas('company', function (Builder $query) use ($number){
+            $query->has('shareholders', '<=', $number);
+        });
+    }
+
+
+
+
+
+
+
+    /*
+     *  Scope:
      *  Returns ownership bundles where shareholder has source of shares
      */
     public function scopeHasSourcesOfShares($query, $types, $min_source_of_shares = null, $max_source_of_shares = null, $exact_source_of_shares = null)
@@ -191,7 +302,7 @@ class OwnershipBundle extends Model
             if( in_array('shareholder to one', $types) ){
 
                 $query = $query->orWhere(function (Builder $query) {
-                            return $query->hasSingleSourceOfShares();
+                            return $query->hasOneSourceOfShares();
                         });
 
             }
@@ -199,7 +310,7 @@ class OwnershipBundle extends Model
             if( in_array('shareholder to many', $types) ){
 
                 $query = $query->orWhere(function (Builder $query) {
-                            return $query->hasMultipleSourcesOfShares();
+                            return $query->hasManySourcesOfShares();
                         });
 
             }
@@ -232,26 +343,26 @@ class OwnershipBundle extends Model
 
     /*
      *  Scope:
-     *  Returns ownership bundles where shareholder has multiple source of shares
+     *  Returns ownership bundles where shareholder has one source of shares
      */
-    public function scopeHasMultipleSourcesOfShares($query)
+    public function scopeHasOneSourceOfShares($query)
     {
         return $query->whereHas('shareholder', function (Builder $query) {
             $query->whereHas('owner', function (Builder $query) {
-                $query->has('shares', '>=', 2);
+                $query->has('shares', '=', 1);
             });
         });
     }
 
     /*
      *  Scope:
-     *  Returns ownership bundles where shareholder has one source of shares
+     *  Returns ownership bundles where shareholder has multiple source of shares
      */
-    public function scopeHasSingleSourceOfShares($query)
+    public function scopeHasManySourcesOfShares($query)
     {
         return $query->whereHas('shareholder', function (Builder $query) {
             $query->whereHas('owner', function (Builder $query) {
-                $query->has('shares', '=', 1);
+                $query->has('shares', '>=', 2);
             });
         });
     }

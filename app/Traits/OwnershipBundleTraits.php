@@ -5,6 +5,7 @@ namespace App\Traits;
 use App\Exports\CompaniesExport;
 use App\Imports\CompaniesImport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Database\Eloquent\Builder;
 
 trait OwnershipBundleTraits
 {
@@ -148,6 +149,43 @@ trait OwnershipBundleTraits
 
         if ( $ownershipBundles && count($statuses) ) {
 
+
+            /*******************************
+             *  FILTER BY COMPANY STATUS   *
+             *******************************/
+
+            $filterByCompanyStatuses = collect($statuses)->filter(function($status){
+                return in_array($status, ['registered', 'cancelled', 'removed', 'not found']);
+            })->toArray();
+
+            if( count($filterByCompanyStatuses) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) use ($filterByCompanyStatuses) {
+                    $query->companyStatus($filterByCompanyStatuses);
+                });
+
+            }
+
+            /*****************************************
+             *  FILTER BY COMPLIANT / NOT COMPLIANT  *
+             *****************************************/
+
+            //  If we want only compliant companies and not non-compliant companies
+            if( in_array('compliant', $statuses) && !in_array('not compliant', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) {
+                    $query->compliant();
+                });
+
+            //  If we want only non-compliant companies and not compliant companies
+            }elseif( in_array('not compliant', $statuses) && !in_array('compliant', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->whereHas('company', function (Builder $query) {
+                    $query->notCompliant();
+                });
+
+            }
+
             /**************************************************
              *  FILTER BY OWNERSHIP SHAREHOLDER OWNER TYPES   *
              *************************************************/
@@ -235,27 +273,75 @@ trait OwnershipBundleTraits
                 $max_source_of_shares = null;
                 $exact_source_of_shares = null;
 
-                $source_of_shares_type = $data['source_of_shares_type'];
+                $source_of_shares_type = $data['source_of_shares_type'] ?? null;
 
-                if( in_array(strtolower($source_of_shares_type), ['minimum', 'range']) ){
+                if( $source_of_shares_type ){
 
-                    $min_source_of_shares = $data['min_source_of_shares'] ?? null;
+                    if( in_array(strtolower($source_of_shares_type), ['minimum', 'range']) ){
 
-                }
+                        $min_source_of_shares = $data['min_source_of_shares'] ?? null;
 
-                if( in_array(strtolower($source_of_shares_type), ['maximum', 'range']) ){
+                    }
 
-                    $max_source_of_shares = $data['max_source_of_shares'] ?? null;
+                    if( in_array(strtolower($source_of_shares_type), ['maximum', 'range']) ){
 
-                }
+                        $max_source_of_shares = $data['max_source_of_shares'] ?? null;
 
-                if( in_array(strtolower($source_of_shares_type), ['exact']) ){
+                    }
 
-                    $exact_source_of_shares = $data['exact_source_of_shares'] ?? null;
+                    if( in_array(strtolower($source_of_shares_type), ['exact']) ){
+
+                        $exact_source_of_shares = $data['exact_source_of_shares'] ?? null;
+
+                    }
 
                 }
 
                 $ownershipBundles = $ownershipBundles->hasSourcesOfShares($filterByShareholderSourcesOfShares, $min_source_of_shares, $max_source_of_shares, $exact_source_of_shares);
+
+            }
+
+            /*******************************
+             *  FILTER BY OWNERSHIP         *
+             *******************************/
+
+            $filterByHasShareholders = collect($statuses)->filter(function($status){
+                return in_array($status, [
+                    'has one shareholder', 'has many shareholders', 'has specific shareholders'
+                ]);
+            })->toArray();
+
+            if( count($filterByHasShareholders) ){
+
+                $min_shareholders = null;
+                $max_shareholders = null;
+                $equal_shareholders = null;
+
+                $specific_shareholders_type = $data['specific_shareholders_type'] ?? null;
+
+                if( $specific_shareholders_type ){
+
+                    if( in_array(strtolower($specific_shareholders_type), ['minimum', 'range']) ){
+
+                        $min_shareholders = $data['min_shareholders'] ?? null;
+
+                    }
+
+                    if( in_array(strtolower($specific_shareholders_type), ['maximum', 'range']) ){
+
+                        $max_shareholders = $data['max_shareholders'] ?? null;
+
+                    }
+
+                    if( in_array(strtolower($specific_shareholders_type), ['exact']) ){
+
+                        $equal_shareholders = $data['equal_shareholders'] ?? null;
+
+                    }
+
+                }
+
+                $ownershipBundles = $ownershipBundles->hasShareholders($filterByHasShareholders, $min_shareholders, $max_shareholders, $equal_shareholders);
 
             }
 

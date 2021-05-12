@@ -87,7 +87,7 @@
 
                     <div v-if="filterByShareholderToSpecificNumber">
 
-                        <span class="block py-2 mb-2">Shareholder number range</span>
+                        <span class="block py-2 mb-2">Has number of shares</span>
 
                         <div class="d-flex">
                             <span class="text-xs mr-2">Type:</span>
@@ -123,6 +123,49 @@
                                 <el-input-number size="mini" v-model="filterSettings.min_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
                                 <span class="text-xs mx-4">To</span>
                                 <el-input-number size="mini" v-model="filterSettings.max_source_of_shares" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                    </div>
+
+                    <div v-if="filterByHasSpecificShareholders">
+
+                        <span class="block py-2 mb-2">Has number of shareholders</span>
+
+                        <div class="d-flex">
+                            <span class="text-xs mr-2">Type:</span>
+                            <el-select v-model="filterSettings.specific_shareholders_type" size="mini" class="mb-2" placeholder="Select" @change="fetchOwnershipBundles()">
+                                <el-option v-for="option in ['Minimum', 'Maximum', 'Exact', 'Range']" :key="option" :label="option" :value="option"></el-option>
+                            </el-select>
+                        </div>
+
+                        <template v-if="filterSettings.specific_shareholders_type == 'Minimum'">
+                            <div class="flex items-center">
+                            <span class="text-xs mr-4">Mimumim</span>
+                                <el-input-number size="mini" v-model="filterSettings.min_shareholders" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.specific_shareholders_type == 'Maximum'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">Maximum</span>
+                                <el-input-number size="mini" v-model="filterSettings.max_shareholders" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.specific_shareholders_type == 'Exact'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">Exactly</span>
+                                <el-input-number size="mini" v-model="filterSettings.equal_shareholders" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                            </div>
+                        </template>
+
+                        <template v-if="filterSettings.specific_shareholders_type == 'Range'">
+                            <div class="flex items-center">
+                                <span class="text-xs mr-4">From</span>
+                                <el-input-number size="mini" v-model="filterSettings.min_shareholders" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
+                                <span class="text-xs mx-4">To</span>
+                                <el-input-number size="mini" v-model="filterSettings.max_shareholders" :min="1" clearable @change="fetchOwnershipBundles()"></el-input-number>
                             </div>
                         </template>
 
@@ -379,6 +422,34 @@
                 selectedFilters: [],
                 filters: [
                     {
+                        label: 'Company Status',
+                        options: [
+                            {
+                                value: 'Registered'
+                            },
+                            {
+                                value: 'Cancelled'
+                            },
+                            {
+                                value: 'Removed'
+                            },
+                            {
+                                value: 'Not Found'
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Compliance Status',
+                        options: [
+                            {
+                                value: 'Compliant'
+                            },
+                            {
+                                value: 'Not Compliant'
+                            }
+                        ]
+                    },
+                    {
                         label: 'Entity',
                         options: [
                             {
@@ -443,19 +514,36 @@
                         ]
                     },
                     {
-                        label: 'Ownership',
+                        label: 'Number of shares in several companies',
                         options: [
                             {
-                                name: 'Shareholder to one',
+                                name: 'Shareholder to one company',
                                 value: 'shareholder to one'
                             },
                             {
-                                name: 'Shareholder to many',
+                                name: 'Shareholder to many companies',
                                 value: 'shareholder to many'
                             },
                             {
-                                name: 'Shareholder to specific number',
+                                name: 'Shareholder to specific # of companies',
                                 value: 'shareholder to specific'
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Number of shareholders in same company',
+                        options: [
+                            {
+                                name: 'Company has one shareholder',
+                                value: 'has one shareholder'
+                            },
+                            {
+                                name: 'Company has many shareholders',
+                                value: 'has many shareholders'
+                            },
+                            {
+                                name: 'Company has specific # of shareholders',
+                                value: 'has specific shareholders'
                             }
                         ]
                     },
@@ -518,6 +606,11 @@
                     exact_source_of_shares: 1,
                     source_of_shares_type: 'Minimum',
 
+                    min_shareholders: 1,
+                    max_shareholders: 2,
+                    equal_shareholders: 1,
+                    specific_shareholders_type: 'Minimum',
+
                     shareholder_appointed_start_date: null,
                     shareholder_appointed_end_date: null,
 
@@ -572,6 +665,11 @@
                     return ['shareholder to specific'].includes(selectedFilter);
                 }).length ? true : false;
             },
+            filterByHasSpecificShareholders(){
+                return this.selectedFilters.filter((selectedFilter) => {
+                    return ['has specific shareholders'].includes(selectedFilter);
+                }).length ? true : false;
+            },
             filterByShareholderAppointedDate(){
                 return this.selectedFilters.filter((selectedFilter) => {
                     return ['shareholder appointed date'].includes(selectedFilter);
@@ -594,8 +692,9 @@
             },
             showFilterSettings(){
                 return this.filterByCustomShareholders || this.filterByShareholderToSpecificNumber ||
-                       this.filterByShareholderAppointedDate || this.filterByShareholderCeasedDate ||
-                       this.filterByDirectorAppointedDate || this.filterByDirectorCeasedDate;
+                       this.filterByHasSpecificShareholders || this.filterByShareholderAppointedDate ||
+                       this.filterByShareholderCeasedDate || this.filterByDirectorAppointedDate ||
+                       this.filterByDirectorCeasedDate;
             },
             urlQueryParamsAsObject(){
 
@@ -649,6 +748,37 @@
                 if( this.filterByShareholderToSpecificNumber && this.filterSettings.max_source_of_shares ){
                     if( ['Maximum', 'Range'].includes(this.filterSettings.source_of_shares_type) ){
                         url_append.max_source_of_shares = this.filterSettings.max_source_of_shares;
+                    }
+                }
+
+
+
+
+
+
+                //  Set the filter specific shareholders type (If required)
+                if( this.filterByHasSpecificShareholders && this.filterSettings.specific_shareholders_type ){
+                    url_append.specific_shareholders_type = this.filterSettings.specific_shareholders_type;
+                }
+
+                //  Set the filter equal shareholders (If required)
+                if( this.filterByHasSpecificShareholders && this.filterSettings.equal_shareholders ){
+                    if( ['Exact'].includes(this.filterSettings.specific_shareholders_type) ){
+                        url_append.equal_shareholders = this.filterSettings.equal_shareholders;
+                    }
+                }
+
+                //  Set the filter min shareholders (If required)
+                if( this.filterByHasSpecificShareholders && this.filterSettings.min_shareholders ){
+                    if( ['Minimum', 'Range'].includes(this.filterSettings.specific_shareholders_type) ){
+                        url_append.min_shareholders = this.filterSettings.min_shareholders;
+                    }
+                }
+
+                //  Set the filter max shareholders (If required)
+                if( this.filterByHasSpecificShareholders && this.filterSettings.max_shareholders ){
+                    if( ['Maximum', 'Range'].includes(this.filterSettings.specific_shareholders_type) ){
+                        url_append.max_shareholders = this.filterSettings.max_shareholders;
                     }
                 }
 

@@ -472,7 +472,6 @@ trait CompanyTraits
 
             }
 
-
             /*****************************************
              *  FILTER BY COMPLIANT / NOT COMPLIANT  *
              *****************************************/
