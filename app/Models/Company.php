@@ -714,4 +714,10 @@ class Company extends Model
         $this->attributes['company_sub_type'] = ucwords( preg_replace('/([a-z])([A-Z])/', '$1 $2', $value) );
     }
 
+    public function setBusinessSectorAttribute($value)
+    {
+        //  Convert "someValue" to "Some Value"
+        $this->attributes['business_sector'] = ucwords( preg_replace('/([a-z])([A-Z])/', '$1 $2', $value) );
+    }
+
 }

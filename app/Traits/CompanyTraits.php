@@ -369,7 +369,9 @@ trait CompanyTraits
              *  FILTER BY COMPANY STATUS   *
              *******************************/
 
-            $company_statuses = collect(DB::table('companies')->whereNotNull('company_status')->groupBy('company_status')->pluck('company_status'))->filter()->toArray();
+            $company_statuses = collect(DB::table('companies')->groupBy('company_status')->pluck('company_status'))->filter()->values()->map(function ($value) {
+                return strtolower($value);
+            })->toArray();
 
             $filterByCompanyStatuses = collect($statuses)->filter(function($status) use ($company_statuses) {
                 return in_array($status, $company_statuses);
@@ -385,7 +387,9 @@ trait CompanyTraits
              *  FILTER BY COMPANY TYPE     *
              *******************************/
 
-            $company_types = collect(DB::table('companies')->whereNotNull('company_type')->groupBy('company_type')->pluck('company_type'))->filter()->toArray();
+            $company_types = collect(DB::table('companies')->groupBy('company_type')->pluck('company_type'))->filter()->values()->map(function ($value) {
+                return strtolower($value);
+            })->toArray();
 
             $filterByCompanyTypes = collect($statuses)->filter(function($status) use ($company_types) {
                 return in_array($status, $company_types);
@@ -401,7 +405,9 @@ trait CompanyTraits
              *  FILTER BY COMPANY SUB TYPE *
              *******************************/
 
-            $company_sub_types = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+            $company_sub_types = collect(DB::table('companies')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->values()->map(function ($value) {
+                return strtolower($value);
+            })->toArray();
 
             $filterByCompanySubType = collect($statuses)->filter(function($status) use ($company_sub_types) {
                 return in_array($status, $company_sub_types);
@@ -417,7 +423,9 @@ trait CompanyTraits
              *  FILTER BY COMPANY BUSINESS SECTOR *
              *************************************/
 
-            $business_sectors = collect(DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type'))->filter()->toArray();
+            $business_sectors = collect(DB::table('companies')->groupBy('business_sector')->pluck('business_sector'))->filter()->values()->map(function ($value) {
+                return strtolower($value);
+            })->toArray();
 
             $filterByBusinessSectors = collect($statuses)->filter(function($status) use ($business_sectors) {
                 return in_array($status, $business_sectors);

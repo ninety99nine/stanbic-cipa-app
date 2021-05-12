@@ -1140,10 +1140,6 @@
                 });
             },
             companyTypesOptions(){
-
-                console.log('this.dynamic_filter_options');
-                console.log(this.dynamic_filter_options);
-
                 return ((this.dynamic_filter_options || {}).company_types || []).map((type) => {
                     return {
                         value: type
@@ -1292,12 +1288,6 @@
                 });
             },
             setTableData(companies){
-
-                console.log('this.companies');
-                console.log(this.companies);
-                console.log('this.companies.data');
-                console.log(this.companies.data);
-
                 if( companies ){
                     this.tableData = companies.map(function(company){
                         return {

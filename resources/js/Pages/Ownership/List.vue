@@ -453,7 +453,7 @@
                         ]
                     },
                     {
-                        label: 'Entity',
+                        label: 'Shareholder Type',
                         options: [
                             {
                                 name: 'Individuals',
@@ -881,10 +881,6 @@
                 });
             },
             companyTypesOptions(){
-
-                console.log('this.dynamic_filter_options');
-                console.log(this.dynamic_filter_options);
-
                 return ((this.dynamic_filter_options || {}).company_types || []).map((type) => {
                     return {
                         value: type

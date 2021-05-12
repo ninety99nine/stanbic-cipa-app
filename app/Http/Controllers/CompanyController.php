@@ -75,19 +75,19 @@ class CompanyController extends Controller
              */
             $company_statuses = collect(
                 DB::table('companies')->whereNotNull('company_status')->groupBy('company_status')->pluck('company_status')
-            )->filter()->toArray();
+            )->filter()->values()->toArray();
 
             $company_types = collect(
                 DB::table('companies')->whereNotNull('company_type')->groupBy('company_type')->pluck('company_type')
-            )->filter()->toArray();
+            )->filter()->values()->toArray();
 
             $company_sub_types = collect(
                 DB::table('companies')->whereNotNull('company_sub_type')->groupBy('company_sub_type')->pluck('company_sub_type')
-            )->filter()->toArray();
+            )->filter()->values()->toArray();
 
             $business_sectors = collect(
                 DB::table('companies')->whereNotNull('business_sector')->groupBy('business_sector')->pluck('business_sector')
-            )->filter()->toArray();
+            )->filter()->values()->toArray();
 
             $dynamic_filter_options = [
                 'company_statuses' => $company_statuses,
