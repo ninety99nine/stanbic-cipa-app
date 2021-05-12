@@ -1100,6 +1100,9 @@
             this.setSortByFromUrl();
             this.setSortByTypeFromUrl();
             this.setTableData(this.ownership_bundles.data);
+
+            console.log('this.dynamic_filter_options');
+            console.log(this.dynamic_filter_options);
         }
     }
 
