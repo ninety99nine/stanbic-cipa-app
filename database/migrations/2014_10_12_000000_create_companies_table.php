@@ -50,8 +50,8 @@ class CreateCompaniesTable extends Migration
             /**
              *  INDEXES
              */
-            $table->unique('uin');
-            $table->unique('name');
+            $table->index('uin');
+            $table->index('name');
             $table->index('company_status');
             $table->index('exempt');
             $table->index('foreign_company');
