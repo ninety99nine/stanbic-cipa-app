@@ -16,7 +16,7 @@
                 <el-input v-model="searchWord" placeholder="Search shareholders or directors" prefix-icon="el-icon-search"
                           size="small" class="mr-2" clearable @keyup.enter="fetchOwnershipBundles()" @clear="fetchOwnershipBundles()">
                     <template #prepend>
-                        <el-select v-model="searchType" placeholder="Select" :style="{ width: '140px' }" @change="triggerSearch(searchWord)">
+                        <el-select v-model="searchType" placeholder="Select" :style="{ width: '140px' }" @change="triggerSearch(searchWord, searchType)">
                             <el-option v-for="(searchType, index) in searchTypes" :key="index" :label="searchType.name" :value="searchType.value"></el-option>
                         </el-select>
                     </template>
@@ -551,6 +551,19 @@
                         ]
                     },
                     {
+                        label: 'Shareholder company',
+                        options: [
+                            {
+                                name: 'Shareholder company has shares',
+                                value: 'company owns'
+                            },
+                            {
+                                name: 'Shareholder company doesn\'t have shares',
+                                value: 'company does not own'
+                            },
+                        ]
+                    },
+                    {
                         label: 'Duplicates',
                         options: [
                             {
@@ -905,8 +918,13 @@
                 this.fetchOwnershipBundles();
             },
             handleFilter(){
-                //  Clear the search
-                this.searchWord = '';
+
+                if( this.selectedFilters.length ){
+
+                    //  Clear the search
+                    this.searchWord = '';
+
+                }
 
                 this.fetchOwnershipBundles();
             },

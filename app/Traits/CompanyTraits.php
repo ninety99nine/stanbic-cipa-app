@@ -1073,7 +1073,7 @@ trait CompanyTraits
          *  CREATE / UPDATE ENTITY              *
          ****************************************/
 
-        $entity = $this->createOrUpdateResourceEntity($entity_shareholder);
+        $entity = $this->createOrUpdateResourceEntity($entity_shareholder, true);
 
         //  Create / update the shareholder
         $shareholder = $this->createOrUpdateShareholder($entity_shareholder, $entity);
@@ -1531,30 +1531,46 @@ trait CompanyTraits
     /**
      *  This method creates or updates entity (Company / Business)
      */
-    public function createOrUpdateResourceEntity($entity_template)
+    public function createOrUpdateResourceEntity($entity_template, $force_as_company = false)
     {
-        //  If we have a UIN, then this is a Company
-        if( !is_null($entity_template['uin']) ){
+
+        $name = trim($entity_template['name']);
+
+        //  If we have a UIN or the Company name is the same or we force as a company, then this is a Company
+        if( !is_null($entity_template['uin']) || ($this->name == $name) || $force_as_company == true){
 
             /****************************************
              *  CREATE / UPDATE COMPANY             *
              ****************************************/
 
-            $identifiers = [
-                'uin' => $entity_template['uin']
-            ];
+            //  If the company name matches, then use the current company uin otherwise the entity uin
+            $uin = ($this->name == $name) ? $this->uin : $entity_template['uin'];
+
+            //  If we have a company uin
+            if( $uin ){
+
+                //  Identify using the company uin
+                $identifiers = [
+                    'uin' => $uin
+                ];
+
+            }else{
+
+                //  Identify using the company name
+                $identifiers = [
+                    'name' => $name
+                ];
+
+            }
 
             //  Create / Update the Company
             $entity = Company::updateOrCreate(
 
-                //  Where uin = $uin
+                //  Where uin = $uin or name = $name
                 $identifiers,
 
                 //  Update or Create a record with this Array of key/values
-                [
-                    'uin' => $entity_template['uin'],
-                    'name' => $entity_template['company_name']
-                ]
+                $entity_template
 
             );
 
@@ -1566,7 +1582,7 @@ trait CompanyTraits
              ****************************************/
 
             $identifiers = [
-                'name' => $entity_template['company_name']
+                'name' => $entity_template['name']
             ];
 
             //  Create / Update the Business
@@ -1576,7 +1592,7 @@ trait CompanyTraits
                 $identifiers,
 
                 //  Update or Create a record with this Array of key/values
-                ['name' => $entity_template['company_name']]
+                $entity_template
             );
 
         }
@@ -1933,7 +1949,7 @@ trait CompanyTraits
                     'fields' => [
                         'identifier' => 'cipa_identifier',
                         'UIN' => 'uin',
-                        'CompanyName' => 'company_name',
+                        'CompanyName' => 'name',
                         'RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
                         'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
                         'AppointmentDate' => 'appointment_date',
@@ -1993,7 +2009,7 @@ trait CompanyTraits
                     'fields' => [
                         'identifier' => 'cipa_identifier',
                         'UIN' => 'uin',
-                        'CompanyName' => 'company_name',
+                        'CompanyName' => 'name',
                         'RegisteredOfficeAddress' => $this->cipaAddressFieldsTemplate('registered_office_address'),
                         'PostalAddress' => $this->cipaAddressFieldsTemplate('postal_address'),
                         'AppointmentDate' => 'appointment_date',

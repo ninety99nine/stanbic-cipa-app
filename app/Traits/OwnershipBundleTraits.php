@@ -432,6 +432,20 @@ trait OwnershipBundleTraits
 
             }
 
+            /*******************************************
+             *  FILTER BY COMPANY OWNS / DOES NOT OWN  *
+             ******************************************/
+
+            if( in_array('company owns', $statuses) && !in_array('company does not own', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->companyHasShares();
+
+            }elseif( in_array('company does not own', $statuses) && !in_array('company owns', $statuses) ){
+
+                $ownershipBundles = $ownershipBundles->companyDoesNotHaveShares();
+
+            }
+
             /*****************************************
              *  FILTER BY SHAREHOLDER CEASED DATE    *
              *****************************************/

@@ -182,6 +182,24 @@ class OwnershipBundle extends Model
 
     /*
      *  Scope:
+     *  Returns ownership bundles where company has shares in other companies
+     */
+    public function scopeCompanyHasShares($query)
+    {
+        return $query->has('company.shares');
+    }
+
+    /*
+     *  Scope:
+     *  Returns ownership bundles where company does not have shares in other companies
+     */
+    public function scopeCompanyDoesNotHaveShares($query)
+    {
+        return $query->doesntHave('company.shares');
+    }
+
+    /*
+     *  Scope:
      *  Returns ownership bundles where company has given number of shareholders
      */
     public function scopeHasShareholders($query, $types, $min = null, $max = null, $equal = null)
