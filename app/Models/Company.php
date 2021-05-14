@@ -671,11 +671,6 @@ class Company extends Model
         ];
     }
 
-    public function setNameAttribute($value)
-    {
-        $this->attributes['name'] = trim($value);
-    }
-
     public function setCompanyStatusAttribute($value)
     {
         $this->attributes['company_status'] = ucwords($value);

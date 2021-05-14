@@ -1483,6 +1483,12 @@ trait CompanyTraits
             'last_name' => $individual_template['individual_name']['last_name']
         ];
 
+        \Illuminate\Support\Facades\Log::debug('IDENTIFIES');
+        \Illuminate\Support\Facades\Log::debug( json_encode($identifiers) );
+
+        \Illuminate\Support\Facades\Log::debug('FIND');
+        \Illuminate\Support\Facades\Log::debug( Individual::where($identifiers)->first() );
+
         //  Create / Update the Individual
         $individual = Individual::updateOrCreate(
             /**
@@ -2155,7 +2161,21 @@ trait CompanyTraits
                         //  Handle Example 2 scenerio - If we have the "Value" field then extract the actual value
                         if( isset( $fieldValue->{$field}->Value ) ){
 
-                            $fieldValue = $fieldValue->{$field}->Value;
+                            //  Capture the value
+                            $value = $fieldValue->{$field}->Value;
+
+                            //  If the value is a type of string
+                            if( gettype($value) == 'string'){
+
+                                //  Set Null if empty or set original value
+                                $fieldValue = (trim($value) === '') ? null : $value;
+
+                            }else{
+
+                                //  Set original value e.g true/false boolean
+                                $fieldValue = $value;
+
+                            }
 
                         }else{
 

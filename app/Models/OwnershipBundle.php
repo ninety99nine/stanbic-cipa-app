@@ -541,8 +541,4 @@ class OwnershipBundle extends Model
         return round($value, 2);
     }
 
-    public function setShareholderNameAttribute($value)
-    {
-        $this->attributes['shareholder_name'] = trim($value);
-    }
 }
