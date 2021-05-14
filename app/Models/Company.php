@@ -386,6 +386,11 @@ class Company extends Model
         return $this->hasMany(Shareholder::class, 'shareholder_of_company_id');
     }
 
+    public function ownershipBundles()
+    {
+        return $this->hasMany(OwnershipBundle::class, 'shareholder_of_company_id');
+    }
+
     public function addresses()
     {
         return $this->morphMany(Address::class, 'owner');
@@ -402,7 +407,8 @@ class Company extends Model
      */
     protected $appends = [
         'resource_type', 'is_registered', 'is_cancelled', 'is_removed', 'is_not_found', 'is_compliant',
-        'is_imported_from_cipa', 'is_recently_updated_with_cipa', 'cipa_updated_human_time'
+        'is_imported_from_cipa', 'is_recently_updated_with_cipa', 'cipa_updated_human_time',
+        'registered_office_address_lines', 'postal_address_lines', 'principal_place_of_business_lines'
     ];
 
     /**
@@ -497,7 +503,7 @@ class Company extends Model
         return $value ? Carbon::parse($value)->format('d M Y') : null;
     }
 
-    public function getRegisteredOfficeAddressAttribute()
+    public function getRegisteredOfficeAddressLinesAttribute()
     {
         //  Foreach address return the address line
         return collect($this->addresses)->where('type', 'registered_office_address')->map(function($address){
@@ -508,7 +514,7 @@ class Company extends Model
         })->join(' | ');
     }
 
-    public function getPostalAddressAttribute()
+    public function getPostalAddressLinesAttribute()
     {
         //  Foreach address return the address line
         return collect($this->addresses)->where('type', 'postal_address')->map(function($address){
@@ -519,7 +525,7 @@ class Company extends Model
         })->join(' | ');
     }
 
-    public function getPrincipalPlaceOfBusinessAttribute()
+    public function getPrincipalPlaceOfBusinessLinesAttribute()
     {
         //  Foreach address return the address line
         return collect($this->addresses)->where('type', 'principal_place_of_business')->map(function($address){

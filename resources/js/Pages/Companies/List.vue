@@ -361,80 +361,130 @@
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Directors</span>
 
-                                    <div v-for="(director, index) in scope.row.directors" :key="index"
-                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
-                                        <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                            <a :href="route('ownership-bundles', {search: director.individual.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
-                                                <span class="mr-1">{{ director.individual.full_name }}</span>
-                                            </a>
-                                            <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
-                                        </div>
-                                        <span v-if="director.individual.residential_address_lines">{{ director.individual.residential_address_lines }}</span>
-                                    </div>
+                                    <template v-if="scope.row.directors.length">
+                                        <div v-for="(director, index) in scope.row.directors" :key="index"
+                                            class="bg-white rounded-sm shadow-md border p-4 mb-2">
+                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                <a :href="route('ownership-bundles', {search: director.individual.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                    <span class="mr-1">{{ director.individual.full_name }}</span>
+                                                </a>
+                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreDirectorToggle(director.individual.id)">{{ this.expandedDirectors.includes(director.individual.id) ? 'Show Less' : 'Show More' }}</span>
+                                            </div>
+                                            <span v-if="director.individual.residential_address_lines && !this.expandedDirectors.includes(director.individual.id)">{{ director.individual.residential_address_lines }}</span>
 
+                                            <!-- Show More -->
+                                            <div v-if="this.expandedDirectors.includes(director.individual.id)">
+                                                <div v-if="director.individual.residential_address_lines">
+                                                    <span class="font-bold">Residential address: </span>
+                                                    <span>{{ director.individual.residential_address_lines }}</span>
+                                                </div>
+                                                <div v-if="director.individual.postal_address_lines">
+                                                    <span class="font-bold">Postal address: </span>
+                                                    <span>{{ director.individual.postal_address_lines }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <el-alert v-else title="No directors" type="info"></el-alert>
                                 </div>
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Shareholders</span>
-                                    <div v-for="(shareholder, index) in scope.row.shareholders" :key="index"
-                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
+                                    <template v-if="scope.row.shareholders.length">
+                                        <div v-for="(shareholder, index) in scope.row.shareholders" :key="index"
+                                            class="bg-white rounded-sm shadow-md border p-4 mb-2">
 
-                                        <template v-if="shareholder.owner.resource_type == 'individual'">
-                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                <a :href="route('ownership-bundles', {search: shareholder.owner.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
-                                                    <span class="mr-1">{{ shareholder.owner.full_name }}</span>
-                                                </a>
-                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
-                                            </div>
-                                            <span v-if="shareholder.owner.residential_address_lines">{{ shareholder.owner.residential_address_lines }}</span>
-                                        </template>
+                                            <template v-if="shareholder.owner.resource_type == 'individual'">
+                                                <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                    <a :href="route('ownership-bundles', {search: shareholder.owner.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                        <span class="mr-1">{{ shareholder.owner.full_name }}</span>
+                                                    </a>
+                                                    <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreShareholderToggle(shareholder.owner.id)">{{ this.expandedShareholders.includes(shareholder.owner.id) ? 'Show Less' : 'Show More' }}</span>
+                                                </div>
 
-                                        <template v-if="shareholder.owner.resource_type == 'company'">
-                                            <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                <span class="font-bold">
-                                                    <span v-if="shareholder.owner.uin" class="mr-1">{{ shareholder.owner.name }}</span>
-                                                    <a v-else :href="route('ownership-bundles', {search: shareholder.owner.name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.owner.name }}</a>
-                                                    <span v-if="shareholder.owner.uin">
-                                                        (<a :href="route('ownership-bundles', {search: shareholder.owner.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.owner.uin }}</a>)
+                                                <span v-if="shareholder.owner.residential_address_lines && !this.expandedShareholders.includes(shareholder.owner.id)">{{ shareholder.owner.residential_address_lines }}</span>
+
+                                                <!-- Show More -->
+                                                <div v-if="this.expandedShareholders.includes(shareholder.owner.id)">
+                                                    <div v-if="shareholder.owner.residential_address_lines">
+                                                        <span class="font-bold">Residential address: </span>
+                                                        <span>{{ shareholder.owner.residential_address_lines }}</span>
+                                                    </div>
+                                                    <div v-if="shareholder.owner.postal_address_lines">
+                                                        <span class="font-bold">Postal address: </span>
+                                                        <span>{{ shareholder.owner.postal_address_lines }}</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <template v-if="shareholder.owner.resource_type == 'company'">
+                                                <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
+                                                    <span class="font-bold">
+                                                        <span v-if="shareholder.owner.uin" class="mr-1">{{ shareholder.owner.name }}</span>
+                                                        <a v-else :href="route('ownership-bundles', {search: shareholder.owner.name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.owner.name }}</a>
+                                                        <span v-if="shareholder.owner.uin">
+                                                            (<a :href="route('ownership-bundles', {search: shareholder.owner.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.owner.uin }}</a>)
+                                                        </span>
                                                     </span>
-                                                </span>
-                                                <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }">Show More</span>
-                                            </div>
-                                            <span>Tlokweng Masetlheng Ward, Tlokweng, Botswana</span>
-                                        </template>
-                                    </div>
+                                                    <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreShareholderToggle(shareholder.owner.id)">{{ this.expandedShareholders.includes(shareholder.owner.id) ? 'Show Less' : 'Show More' }}</span>
+                                                </div>
+                                                <span v-if="shareholder.owner.registered_office_address_lines && !this.expandedShareholders.includes(shareholder.owner.id)">{{ shareholder.owner.registered_office_address_lines }}</span>
+
+                                                <!-- Show More -->
+                                                <div v-if="this.expandedShareholders.includes(shareholder.owner.id)">
+                                                    <div v-if="shareholder.owner.principal_place_of_business_lines">
+                                                        <span class="font-bold">Principal place of business: </span>
+                                                        <span>{{ shareholder.owner.principal_place_of_business_lines }}</span>
+                                                    </div>
+                                                    <div v-if="shareholder.owner.registered_office_address_lines">
+                                                        <span class="font-bold">Residential address: </span>
+                                                        <span>{{ shareholder.owner.registered_office_address_lines }}</span>
+                                                    </div>
+                                                    <div v-if="shareholder.owner.postal_address_lines">
+                                                        <span class="font-bold">Postal address: </span>
+                                                        <span>{{ shareholder.owner.postal_address_lines }}</span>
+                                                    </div>
+                                                </div>
+
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <el-alert v-else title="No shareholders" type="info"></el-alert>
                                 </div>
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Share Allocation</span>
 
-                                    <div class="bg-white rounded-sm shadow-md border mb-2">
+                                    <template v-if="scope.row.ownership_bundles.length">
+                                        <div class="bg-white rounded-sm shadow-md border mb-2">
 
-                                        <div class="bg-gray-100 grid grid-cols-2 py-2 px-4 mb-2">
+                                            <div class="bg-gray-100 grid grid-cols-2 py-2 px-4 mb-2">
 
-                                            <div>
-                                                <span class="font-bold">Shareholder Name</span>
+                                                <div>
+                                                    <span class="font-bold">Shareholder Name</span>
+                                                </div>
+
+                                                <div>
+                                                    <span class="font-bold">Share percentage</span>
+                                                </div>
+
                                             </div>
 
-                                            <div>
-                                                <span class="font-bold">Number of Shares</span>
+                                            <div v-for="(ownership_bundle, index) in scope.row.ownership_bundles" :key="index" class="grid grid-cols-2 px-2 px-4 mb-2">
+                                                <span class="block">{{ ownership_bundle.shareholder_name }}</span>
+                                                <span class="block">{{ ownership_bundle.percentage_of_shares }}%</span>
                                             </div>
 
                                         </div>
-
-                                        <div v-for="(ownership_bundle, index) in scope.row.ownership_bundles" :key="index" class="grid grid-cols-2 px-2 px-4 mb-2">
-                                            <span class="block">{{ ownership_bundle.owners.owner.shareholder_name }}</span>
-                                            <span class="block">{{ ownership_bundle.number_of_shares }}</span>
-                                        </div>
-
-                                    </div>
+                                    </template>
+                                    <el-alert v-else title="No share allocations" type="info"></el-alert>
 
                                 </div>
 
                                 <div>
                                     <span class="block font-bold text-gray-500 py-2 mb-2">Secretaries</span>
                                     <div v-for="(secretary, index) in scope.row.secretaries" :key="index"
-                                         class="bg-white rounded-sm shadow-md border p-4 mb-2">
+                                        class="bg-white rounded-sm shadow-md border p-4 mb-2">
 
                                         <template v-if="secretary.individual_secretary">
                                             <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
@@ -513,11 +563,11 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column v-if="selectedColumns.includes('registered office address')" min-width="250" prop="registered_office_address" label="Registered office address" sortable>
+                <el-table-column v-if="selectedColumns.includes('registered office address')" min-width="250" prop="registered_office_address_lines" label="Registered office address" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.registered_office_address }}</span>
+                            <span>{{ scope.row.registered_office_address_lines }}</span>
                         </span>
                     </template>
                 </el-table-column>
@@ -525,15 +575,15 @@
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.registered_office_address }}</span>
+                            <span>{{ scope.row.postal_address_lines }}</span>
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column v-if="selectedColumns.includes('principal place of business')" min-width="250" prop="principal_place_of_business" label="Principal place of business" sortable>
+                <el-table-column v-if="selectedColumns.includes('principal place of business')" min-width="250" prop="principal_place_of_business_lines" label="Principal place of business" sortable>
                     <template #default="scope">
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.principal_place_of_business }}</span>
+                            <span>{{ scope.row.principal_place_of_business_lines }}</span>
                         </span>
                     </template>
                 </el-table-column>
@@ -779,6 +829,8 @@
                         status: true
                     }
                 ],
+                expandedDirectors: [],
+                expandedShareholders: [],
                 addClient: false,
                 showSelectedColumns: false,
                 selectedFilters: [],
@@ -1125,6 +1177,20 @@
             }
         },
         methods: {
+            handleShowMoreDirectorToggle(id){
+                if( this.expandedDirectors.includes(id) ){
+                    this.expandedDirectors.splice(this.expandedDirectors.indexOf(id), 1);
+                }else{
+                    this.expandedDirectors.push(id);
+                }
+            },
+            handleShowMoreShareholderToggle(id){
+                if( this.expandedShareholders.includes(id) ){
+                    this.expandedShareholders.splice(this.expandedShareholders.indexOf(id), 1);
+                }else{
+                    this.expandedShareholders.push(id);
+                }
+            },
             companyStatusOptions(){
                 return ((this.dynamic_filter_options || {}).company_statuses || []).map((status) => {
                     return {
@@ -1310,18 +1376,14 @@
                             annual_return_last_filed_date: company.annual_return_last_filed_date,
                             details: company.details,
 
-                            registered_office_address: company.registered_office_address,
-                            postal_address: company.postal_address,
-                            principal_place_of_business: company.principal_place_of_business,
+                            principal_place_of_business_lines: company.principal_place_of_business_lines,
+                            registered_office_address_lines: company.registered_office_address_lines,
+                            postal_address_lines: company.postal_address_lines,
 
                             ownership_bundles: company.ownership_bundles,
                             shareholders: company.shareholders,
                             secretaries: company.secretaries,
                             directors: company.directors,
-
-
-                            //  'registered_office_address', 'postal_address', 'principal_place_of_business',
-                            //  'ownership_bundles', 'directors', 'shareholders', 'secretary'
 
                             //  Attributes
                             is_registered: company.is_registered.status,

@@ -254,7 +254,7 @@ trait CompanyTraits
                             })->toArray();
 
                 //  Get the companies
-                $companies = \App\Models\Company::select($fields)->with(['directors.individual', 'shareholders.owner']);
+                $companies = \App\Models\Company::select($fields)->with(['directors.individual', 'shareholders.owner', 'ownershipBundles']);
 
             }
 
