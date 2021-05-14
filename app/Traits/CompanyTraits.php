@@ -1339,7 +1339,7 @@ trait CompanyTraits
                      *  CREATE / UPDATE OWNERSHIP BUNDLE    *
                      ****************************************/
 
-                    $shareholder_name = trim($ownership_bundle['owners']['owner']['shareholder_name']);
+                    $shareholder_name = $ownership_bundle['owners']['owner']['shareholder_name'];
 
                     /**
                      *  Check if this shareholder is the same as the company name.
@@ -1356,12 +1356,12 @@ trait CompanyTraits
                         //  If the owner is a company or organisation
                         if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
 
-                            return ($shareholder_name == trim($shareholder->owner->name));
+                            return ($shareholder_name == $shareholder->owner->name);
 
                         //  If the owner is an individual
                         }elseif( $shareholder->owner_type == 'individual' ){
 
-                            return ($shareholder_name == trim($shareholder->owner->full_name));
+                            return ($shareholder_name == $shareholder->owner->full_name);
 
                         }
 
@@ -1378,7 +1378,7 @@ trait CompanyTraits
                         //  If we have the linked individual
                         if( $director->individual ){
 
-                            return $shareholder_name == trim($director->individual->full_name);
+                            return $shareholder_name == $director->individual->full_name;
 
                         }
 
@@ -1540,7 +1540,7 @@ trait CompanyTraits
     public function createOrUpdateResourceEntity($entity_template, $force_as_company = false)
     {
 
-        $name = trim($entity_template['name']);
+        $name = $entity_template['name'];
 
         //  If we have a UIN or the Company name is the same or we force as a company, then this is a Company
         if( !is_null($entity_template['uin']) || ($this->name == $name) || $force_as_company == true){
