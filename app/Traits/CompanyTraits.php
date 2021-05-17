@@ -791,22 +791,14 @@ trait CompanyTraits
                 //  If this company is marked as a client
                 if( $this->marked_as_client ){
 
-                    \Illuminate\Support\Facades\Log::debug('DO directors');
-
                     //  Create or update the directors
                     $this->createOrUpdateResourceDirectors($template['directors']);
-
-                    \Illuminate\Support\Facades\Log::debug('DO shareholders');
 
                     //  Create or update the shareholders
                     $this->createOrUpdateResourceShareholders($template['shareholders']);
 
-                    \Illuminate\Support\Facades\Log::debug('DO ownership bundles');
-
                     //  Create or update the ownership bundles
                     $this->createOrUpdateResourceOwnershipBundles($template['ownership_bundles']);
-
-                    \Illuminate\Support\Facades\Log::debug('DO secretaries');
 
                     //  Create or update the secretaries
                     $this->createOrUpdateResourceSecretaries($template['secretaries']);
@@ -1345,10 +1337,10 @@ trait CompanyTraits
                      *  Check if this shareholder is the same as the company name.
                      *  This would mean that the copmany is a shareholder to itself,
                      *  which is strange but happens with the data we receive.
+                     *
+                     *  Compare without any spaces in the names (For more accuracy)
                      */
-                    $is_shareholder_to_self = ($shareholder_name == $this->name);
-
-                    \Illuminate\Support\Facades\Log::debug('Ownership Bundle For: '. $shareholder_name);
+                    $is_shareholder_to_self = str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $this->name);
 
                     //  Find the matching shareholder
                     $matched_shareholders = collect($this->shareholders)->filter(function($shareholder) use ($shareholder_name){
@@ -1356,12 +1348,14 @@ trait CompanyTraits
                         //  If the owner is a company or organisation
                         if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
 
-                            return ($shareholder_name == $shareholder->owner->name);
+                            //  Compare without any spaces in the names (For more accuracy)
+                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $shareholder->owner->name));
 
                         //  If the owner is an individual
                         }elseif( $shareholder->owner_type == 'individual' ){
 
-                            return ($shareholder_name == $shareholder->owner->full_name);
+                            //  Compare without any spaces in the names (For more accuracy)
+                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $shareholder->owner->full_name));
 
                         }
 
@@ -1378,7 +1372,8 @@ trait CompanyTraits
                         //  If we have the linked individual
                         if( $director->individual ){
 
-                            return $shareholder_name == $director->individual->full_name;
+                            //  Compare without any spaces in the names (For more accuracy)
+                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $director->individual->full_name));
 
                         }
 
@@ -1419,9 +1414,6 @@ trait CompanyTraits
                         ];
 
                     }
-
-                    \Illuminate\Support\Facades\Log::debug('OCCURANCES');
-                    \Illuminate\Support\Facades\Log::debug( json_encode($occurances) );
 
                     $identifiers = [
                         'shareholder_name' => $shareholder_name,
@@ -1482,12 +1474,6 @@ trait CompanyTraits
             'middle_names' => $individual_template['individual_name']['middle_names'],
             'last_name' => $individual_template['individual_name']['last_name']
         ];
-
-        \Illuminate\Support\Facades\Log::debug('IDENTIFIES');
-        \Illuminate\Support\Facades\Log::debug( json_encode($identifiers) );
-
-        \Illuminate\Support\Facades\Log::debug('FIND');
-        \Illuminate\Support\Facades\Log::debug( Individual::where($identifiers)->first() );
 
         //  Create / Update the Individual
         $individual = Individual::updateOrCreate(
@@ -2291,8 +2277,6 @@ trait CompanyTraits
 
             //  Capture the template field and value
             $template[$newFieldName] = $fieldValue;
-
-            \Illuminate\Support\Facades\Log::debug($newFieldName .': '.json_encode($fieldValue));
 
         }
 

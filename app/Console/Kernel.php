@@ -2,8 +2,6 @@
 
 namespace App\Console;
 
-use DB;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
@@ -53,15 +51,11 @@ class Kernel extends ConsoleKernel
                  */
                 $companies = \App\Models\Company::oldest('cipa_updated_at');
 
-                Log::debug('Preparing to update companies - '.(Carbon::now())->format('d M Y H:i:s') .' - Found: '.$companies->count());
-
                 //  Only query 100 companies at a time
                 $companies->chunk(100, function ($companies) {
 
                     //  Foreach company we retrieved from the query
                     foreach ($companies as $company) {
-
-                        Log::debug('Company UIN - '.$company->uin);
 
                         //  Update the company
                         $company->requestCipaUpdate(false);

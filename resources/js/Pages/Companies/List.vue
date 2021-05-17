@@ -348,6 +348,7 @@
                         <el-skeleton-item v-if="updatingIndexes.includes(scope.$index)" variant="text" />
                         <span v-else-if="scope.row.is_imported_from_cipa">
                             <span :style="{ wordBreak: 'break-word !important' }">{{ scope.row.name }}</span>
+                            <el-tag v-if="!scope.row.marked_as_client" size="mini" type="warning" class="ml-2">Secretary</el-tag>
                         </span>
                     </template>
                 </el-table-column>
@@ -1374,6 +1375,7 @@
                             business_sector: company.business_sector,
                             annual_return_filing_month: company.annual_return_filing_month,
                             annual_return_last_filed_date: company.annual_return_last_filed_date,
+                            marked_as_client: company.marked_as_client,
                             details: company.details,
 
                             principal_place_of_business_lines: company.principal_place_of_business_lines,
