@@ -13,12 +13,12 @@ class CompaniesImport implements ToModel, WithHeadingRow, WithBatchInserts, With
 {
     public function model(array $row)
     {
-        if ( !isset( $row['uin'] ) || empty( $row['uin'] ) ) {
+        if ( !isset( $row['uin'] ) || empty( trim($row['uin']) ) ) {
             return null;
         }
 
         return new Company([
-            'uin' => $row['uin'],
+            'uin' => trim($row['uin']),
             'marked_as_client' => true
         ]);
     }
