@@ -49,9 +49,17 @@ class CreateCompaniesTable extends Migration
 
             /**
              *  INDEXES
+             *
+             *  The unique('uin') is required to allow bulk upserts without duplication when
+             *  importing an excel sheet of uin's. Refer to the following documentation.
+             *
+             *  Link: https://docs.laravel-excel.com/3.1/imports/model.html
+             *
+             *  We decided to also use the unique('name') incase we have to allow bulk import
+             *  using a company name instead of the company uin.
              */
-            $table->index('uin');
-            $table->index('name');
+            $table->unique('uin');
+            $table->unique('name');
             $table->index('company_status');
             $table->index('exempt');
             $table->index('foreign_company');
