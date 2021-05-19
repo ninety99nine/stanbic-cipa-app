@@ -49,16 +49,22 @@ class Kernel extends ConsoleKernel
                  *  to search the matching record on CIPA side ($this->uin). The Eloquest instance can
                  *  then be used to update the company e.g $this->update([ ... ]);
                  */
-                $companies = \App\Models\Company::oldest('cipa_updated_at');
+                $companies_to_update = \App\Models\Company::whereNotNull('uin')->oldest('cipa_updated_at');
+
+                /**
+                 *  We need the id, uin and name to later search for any duplicates so
+                 *  that we can sync any company records that should match.
+                 */
+                $companies_to_sync = \App\Models\Company::select(['id', 'name'])->whereNull('uin')->get();
 
                 //  Only query 100 companies at a time
-                $companies->chunk(100, function ($companies) {
+                $companies_to_update->chunk(100, function ($companies) use ($companies_to_sync){
 
                     //  Foreach company we retrieved from the query
                     foreach ($companies as $company) {
 
                         //  Update the company
-                        $company->requestCipaUpdate(false);
+                        $company->requestCipaUpdate($companies_to_sync, false);
 
                     }
                 });

@@ -681,7 +681,7 @@
                             </span>
                             <template #dropdown>
                                 <el-dropdown-menu>
-                                    <el-dropdown-item icon="el-icon-view" :disabled="isBulkUpdating">View</el-dropdown-item>
+                                    <el-dropdown-item icon="el-icon-view" :disabled="isBulkUpdating" @click="viewCompany(scope.row, scope.$index)">View</el-dropdown-item>
                                     <el-dropdown-item icon="el-icon-refresh" :disabled="isBulkUpdating" @click="requestCompanyUpdate(scope.row, scope.$index)">Update</el-dropdown-item>
                                 </el-dropdown-menu>
                             </template>
@@ -1259,6 +1259,52 @@
                 this.perPage = val;
 
                 this.fetchCompanies();
+            },
+            viewCompany(company, index){
+                this.swipeLeft('companiesTable');
+            },
+            swipeLeft(ref, scrollPixels = -300, duration = 800) {
+                if( ref ){
+                    const element = this.$refs[ref];
+                    this.scrollTo(element, scrollPixels, duration);
+                }
+            },
+            swipeRight(ref, scrollPixels = 300, duration = 800) {
+                if( ref ){
+                    const element = this.$refs[ref];
+                    this.scrollTo(element, scrollPixels, duration);
+                }
+            },
+            scrollTo(element, scrollPixels, duration) {
+                const scrollPos = element.scrollLeft;
+
+                // Condition to check if scrolling is required
+                if ( !( (scrollPos === 0 || scrollPixels > 0) && (element.clientWidth + scrollPos === element.scrollWidth || scrollPixels < 0)))
+                {
+                    // Get the start timestamp
+                    const startTime =
+                    "now" in window.performance
+                        ? performance.now()
+                        : new Date().getTime();
+
+                    function scroll(timestamp) {
+                    //Calculate the timeelapsed
+                    const timeElapsed = timestamp - startTime;
+                    //Calculate progress
+                    const progress = Math.min(timeElapsed / duration, 1);
+                    //Set the scrolleft
+                    element.scrollLeft = scrollPos + scrollPixels * progress;
+                    //Check if elapsed time is less then duration then call the requestAnimation, otherwise exit
+                    if (timeElapsed < duration) {
+                        //Request for animation
+                        window.requestAnimationFrame(scroll);
+                    } else {
+                        return;
+                    }
+                    }
+                    //Call requestAnimationFrame on scroll function first time
+                    window.requestAnimationFrame(scroll);
+                }
             },
             async bulkRequestCompanyUpdate(waitForEachCall = true){
 

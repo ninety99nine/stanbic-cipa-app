@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use App\Exports\CompaniesExport;
 use App\Imports\CompaniesImport;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use RicorocksDigitalAgency\Soap\Facades\Soap;
 use App\Http\Resources\Company as CompanyResource;
@@ -757,7 +758,7 @@ trait CompanyTraits
     /**
      *  This method updates a single company with the latest CIPA updates
      */
-    public function requestCipaUpdate($return = true)
+    public function requestCipaUpdate($companies_to_sync = [], $return = true)
     {
         try {
 
@@ -766,6 +767,36 @@ trait CompanyTraits
 
             //  If we have the company template (Means company was found on CIPA side)
             if( $template ){
+
+                /** I noticed that sometimes when "Company B" is imported and store in the database it will only
+                 *  contain its uin and no other data until it can be updated during this automatic update process.
+                 *  However while "Company B" is waiting to be updated, "Company A" will be first selected and it
+                 *  can happend that ""Company B" has "Company A" as its shareholder, but the problem is that the
+                 *  "Company A" shareholder only has a name and not the uin. Which means that when we create a new
+                 *  record now called "Company C", it will only store the name and not have the uin which would
+                 *  mean that "Company A" and "Company C" are duplicates of the same company but "Company A" only
+                 *  has the uin and not the company name while "Company C" has the name and not the uin. This is a
+                 *  problem since we cannot get the companies to sync together. It would be great that CIPA allows
+                 *  every company listed as a shareholder to always have its uin provided, however this is not
+                 *  always the case as some will contain their uin while others do not. For this reason we need
+                 *  to perform a check to ensure that this company
+                 *
+                 */
+                $matched_company = collect($companies_to_sync)->filter(function($companyToSync) use ($template){
+
+                    return ( $this->removeSpaces($template['name']) == $this->removeSpaces($companyToSync->name) );
+
+                })->first();
+
+                if( $matched_company ){
+
+                    //  Convert any Shareholder owner id and owner type matching the company to this instance id
+                    Shareholder::where('owner_id', $matched_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
+
+                    // Delete the matched company since we have synched the information to this company instance
+                    $matched_company->delete();
+
+                }
 
                 //  Update the current company instance
                 $this->update($template);
@@ -1340,7 +1371,7 @@ trait CompanyTraits
                      *
                      *  Compare without any spaces in the names (For more accuracy)
                      */
-                    $is_shareholder_to_self = str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $this->name);
+                    $is_shareholder_to_self = $this->removeSpaces($shareholder_name) == $this->removeSpaces($this->name);
 
                     //  Find the matching shareholder
                     $matched_shareholders = collect($this->shareholders)->filter(function($shareholder) use ($shareholder_name){
@@ -1349,13 +1380,13 @@ trait CompanyTraits
                         if( in_array($shareholder->owner_type, ['company', 'organisation', 'business']) ){
 
                             //  Compare without any spaces in the names (For more accuracy)
-                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $shareholder->owner->name));
+                            return ($this->removeSpaces($shareholder_name) == $this->removeSpaces($shareholder->owner->name));
 
                         //  If the owner is an individual
                         }elseif( $shareholder->owner_type == 'individual' ){
 
                             //  Compare without any spaces in the names (For more accuracy)
-                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $shareholder->owner->full_name));
+                            return ($this->removeSpaces($shareholder_name) == $this->removeSpaces($shareholder->owner->full_name));
 
                         }
 
@@ -1373,7 +1404,7 @@ trait CompanyTraits
                         if( $director->individual ){
 
                             //  Compare without any spaces in the names (For more accuracy)
-                            return (str_replace(' ', '', $shareholder_name) == str_replace(' ', '', $director->individual->full_name));
+                            return ($this->removeSpaces($shareholder_name) == $this->removeSpaces($director->individual->full_name));
 
                         }
 
@@ -1712,6 +1743,21 @@ trait CompanyTraits
         }
 
         return $organisation;
+    }
+
+    /**
+     *  Remove any spaces from the string value
+     */
+    public function removeSpaces($value = '')
+    {
+        //  If the value is a type of string
+        if( gettype($value) == 'string'){
+
+            return str_replace(' ', '', $value);
+
+        }
+
+        return $value;
     }
 
     /**
