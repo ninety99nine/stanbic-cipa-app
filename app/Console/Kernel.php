@@ -55,7 +55,7 @@ class Kernel extends ConsoleKernel
                  *  We need the id, uin and name to later search for any duplicates so
                  *  that we can sync any company records that should match.
                  */
-                $companies_to_sync = \App\Models\Company::select(['id', 'name'])->whereNull('uin')->get();
+                $companies_to_sync = \App\Models\Company::select(['id', 'name'])->get();
 
                 //  Only query 100 companies at a time
                 $companies_to_update->chunk(100, function ($companies) use ($companies_to_sync){
