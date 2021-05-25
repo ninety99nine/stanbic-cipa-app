@@ -26,6 +26,7 @@ class Company extends Model
      */
     protected $casts = [
         'details' => 'array',
+        'old_uins' => 'array',
         'marked_as_client' => 'boolean'
     ];
 
@@ -48,7 +49,7 @@ class Company extends Model
      * @var array
      */
     protected $fillable = [
-        'uin', 'name', 'info', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
+        'uin', 'name', 'old_uins', 'info', 'company_status', 'exempt', 'foreign_company', 'company_type', 'company_sub_type',
         'incorporation_date', 're_registration_date', 'old_company_number', 'dissolution_date', 'own_constitution_yn',
         'business_sector', 'annual_return_filing_month', 'annual_return_last_filed_date', 'details', 'cipa_updated_at',
 

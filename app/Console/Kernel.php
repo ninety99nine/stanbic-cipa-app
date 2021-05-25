@@ -55,7 +55,7 @@ class Kernel extends ConsoleKernel
                  *  We need the id, uin and name to later search for any duplicates so
                  *  that we can sync any company records that should match.
                  */
-                $companies_to_sync = \App\Models\Company::select(['id', 'name'])->get();
+                $companies_to_sync = \App\Models\Company::select(['id', 'uin', 'name', 'old_uins', 'company_status', 'incorporation_date', 're_registration_date'])->get();
 
                 //  Only query 100 companies at a time
                 $companies_to_update->chunk(100, function ($companies) use ($companies_to_sync){
@@ -63,8 +63,12 @@ class Kernel extends ConsoleKernel
                     //  Foreach company we retrieved from the query
                     foreach ($companies as $company) {
 
+
+                        //  Set the companies to sync
+                        $company->companies_to_sync = $companies_to_sync;
+
                         //  Update the company
-                        $company->requestCipaUpdate($companies_to_sync, false);
+                        $company->requestCipaUpdate();
 
                     }
                 });

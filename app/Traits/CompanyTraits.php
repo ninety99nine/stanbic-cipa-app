@@ -28,6 +28,7 @@ use App\Models\Shareholder;
 trait CompanyTraits
 {
     public $company = null;
+    public $companies_to_sync = [];
 
     /**
      *  This method transforms a collection or single model instance
@@ -758,7 +759,7 @@ trait CompanyTraits
     /**
      *  This method updates a single company with the latest CIPA updates
      */
-    public function requestCipaUpdate($companies_to_sync = [], $return = true)
+    public function requestCipaUpdate($return = false)
     {
         try {
 
@@ -771,30 +772,85 @@ trait CompanyTraits
                 /** I noticed that sometimes when "Company B" is imported and store in the database it will only
                  *  contain its uin and no other data until it can be updated during this automatic update process.
                  *  However while "Company B" is waiting to be updated, "Company A" will be first selected and it
-                 *  can happend that ""Company B" has "Company A" as its shareholder, but the problem is that the
-                 *  "Company A" shareholder only has a name and not the uin. Which means that when we create a new
+                 *  can happend that "Company A" has "Company B" as its shareholder, but the problem is that the
+                 *  "Company B" shareholder only has a name and not the uin. Which means that when we create a new
                  *  record now called "Company C", it will only store the name and not have the uin which would
-                 *  mean that "Company A" and "Company C" are duplicates of the same company but "Company A" only
+                 *  mean that "Company B" and "Company C" are duplicates of the same company but "Company B" only
                  *  has the uin and not the company name while "Company C" has the name and not the uin. This is a
                  *  problem since we cannot get the companies to sync together. It would be great that CIPA allows
                  *  every company listed as a shareholder to always have its uin provided, however this is not
                  *  always the case as some will contain their uin while others do not. For this reason we need
-                 *  to perform a check to ensure that this company
+                 *  to perform a check to ensure that this company is not a possible duplicate of any existing
+                 *  company. We can do this by checking if we have any companies that match the current
+                 *  template name.
                  *
                  */
-                $matched_company = collect($companies_to_sync)->filter(function($companyToSync) use ($template){
-
-                    return ( $this->removeSpaces($template['name']) == $this->removeSpaces($companyToSync->name) );
-
-                })->first();
+                $matched_company = $this->matchingCompany($template['name']);
 
                 if( $matched_company ){
 
-                    //  Convert any Shareholder owner id and owner type matching the company to this instance id
-                    Shareholder::where('owner_id', $matched_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
+                    /**
+                     *  There are 3 types of scenerios to take care of whenever we have a matching company
+                     *
+                     *  (1) - The current template was incorporated more recently e.g Incorporation date is 2016
+                     *      - The matched company was incorporated less recently e.g Incorporation date is 2021
+                     *
+                     *  (2) - The current template was incorporated more recently e.g Incorporation date is 2021
+                     *      - The matched company was incorporated less recently e.g Incorporation date is 2016
+                     *
+                     *  (3) - The current template and matched company were incorporated same date e.g Incorporation date is 2021
+                     *
+                     *  (4) - The matched company only has a uin / name and no other data e.g Incorporation date.
+                     *        (This is usually because its a company record that is created from a nested
+                     *        entity shareholder/secretary).
+                     *      - The current template is the updated record
+                     */
 
-                    // Delete the matched company since we have synched the information to this company instance
-                    $matched_company->delete();
+                    // If we have the incorporation dates
+                    if( !empty($template['incorporation_date']) && !empty($matched_company->incorporation_date) ){
+
+                        /**
+                         *  Extract the dates and make sure to reset the hours, minutes and seconds. This is because
+                         *  we a date comes without hours, minutes and seconds it will use the current time
+                         *  hours, minutes and seconds causing inaccurate date comparisons.
+                         *
+                         *  Final Result must be as follows:
+                         *
+                         *  $template_date          2021-03-23 00:00:00
+                         *  $matched_company_date   2016-08-12 00:00:00
+                         *
+                         *  Instead of:
+                         *
+                         *  $template_date          2021-03-23 00:00:00
+                         *  $matched_company_date   2016-08-12 10:31:45 (incorrect hours, minutes and seconds)
+                         */
+                        $template_date = Carbon::createFromFormat('Y-m-d H:i:s', $template['incorporation_date'])->hour(0)->minute(0)->second(0);
+                        $matched_company_date = Carbon::createFromFormat('d M Y', $matched_company->incorporation_date)->hour(0)->minute(0)->second(0);
+
+                        //  Check if the template incorporation date is the latest or the same
+                        if( $template_date->gte($matched_company_date) ){
+
+                            //  Handle the matched company as the duplicate record to be removed
+                            $this->handleDuplicateRecord($matched_company);
+
+                        //  Check if the matched company incorporation date is the latest
+                        }elseif( $matched_company_date->gt($template_date) ){
+
+                            //  Handle the current instance company as the duplicate record to be removed
+                            $matched_company->handleDuplicateRecord($this);
+
+                            //  Update the matched company and stop further execution of code
+                            return $matched_company->requestCipaUpdate($return);
+
+                        }
+
+                    // If we don't have the incorporation date (This can be true for the matched company)
+                    }else{
+
+                        //  Handle the matched company as the duplicate record to be removed
+                        $this->handleDuplicateRecord($matched_company);
+
+                    }
 
                 }
 
@@ -868,6 +924,80 @@ trait CompanyTraits
         } catch (\Exception $e) {
 
             throw($e);
+
+        }
+    }
+
+    public function handleDuplicateRecord($duplicate_company)
+    {
+        //  Update any Shareholder model with owner id and owner type matching the company instance id
+        Shareholder::where('owner_id', $duplicate_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
+
+        //  Update any Shareholder model with "shareholder of company id" matching the company instance id
+        Shareholder::where('shareholder_of_company_id', $duplicate_company->id)->update(['shareholder_of_company_id' => $this->id]);
+
+        //  Update any Ownership Bundle model with "shareholder of company id" matching the company instance id
+        OwnershipBundle::where('shareholder_of_company_id', $duplicate_company->id)->update(['shareholder_of_company_id' => $this->id]);
+
+        //  Update any Secretary model with "secretary of company id" matching the company instance id
+        Secretary::where('secretary_of_company_id', $duplicate_company->id)->update(['secretary_of_company_id' => $this->id]);
+
+        //  Update any Address model with owner id and owner type matching the company instance id
+        Address::where('owner_id', $duplicate_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
+
+        //  Extract the details of the old uin
+        $old_uin = [
+            'uin' => $duplicate_company->uin,
+            'name' => $duplicate_company->name,
+            'status' => $duplicate_company->company_status
+        ];
+
+        if( !empty($this->old_uins) ){
+
+            $old_uins = array_merge($this->old_uins, $old_uin);
+
+        }else{
+
+            $old_uins = [$old_uin];
+
+        }
+
+        //  Update the company old uins
+        $this->update(['old_uins' => $old_uins]);
+
+        // Delete the matched company since we have synched the information to this company instance
+        $duplicate_company->delete();
+    }
+
+    public function matchingCompany($identifier = null)
+    {
+        //  If we have an identifier e.g a company UIN or Name
+        if( !empty($identifier) ){
+
+            $matched_companies = collect($this->companies_to_sync)->filter(function($company_to_sync) use ($identifier){
+
+                $exists_by_uin = false;
+                $exists_by_name = false;
+
+                if( !empty($company_to_sync->uin) ){
+
+                    //  If the identifier matches the company uin
+                    $exists_by_uin = ( $identifier == $company_to_sync->uin );
+
+                }
+
+                if( !empty($company_to_sync->name) ){
+
+                    //  If the identifier matches the company name
+                    $exists_by_name = ( $this->removeSpaces($identifier) == $this->removeSpaces($company_to_sync->name) );
+
+                }
+
+                return ($exists_by_uin || $exists_by_name);
+
+            });
+
+            return $matched_companies->first();
 
         }
     }
@@ -1560,14 +1690,14 @@ trait CompanyTraits
         $name = $entity_template['name'];
 
         //  If we have a UIN or the Company name is the same or we force as a company, then this is a Company
-        if( !is_null($entity_template['uin']) || ($this->name == $name) || $force_as_company == true){
+        if( !is_null($entity_template['uin']) || ($this->removeSpaces($this->name) == $this->removeSpaces($name)) || $force_as_company == true){
 
             /****************************************
              *  CREATE / UPDATE COMPANY             *
              ****************************************/
 
             //  If the company name matches, then use the current company uin otherwise the entity uin
-            $uin = ($this->name == $name) ? $this->uin : $entity_template['uin'];
+            $uin = ($this->removeSpaces($this->name) == $this->removeSpaces($name)) ? $this->uin : $entity_template['uin'];
 
             //  If we have a company uin
             if( $uin ){
