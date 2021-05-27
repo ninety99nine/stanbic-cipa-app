@@ -212,6 +212,15 @@ class Company extends Model
      *  Scope:
      *  Returns companies that are not imported from cipa
      */
+    public function scopeMutipleUins($query)
+    {
+        return $query->whereNotNull('old_uins');
+    }
+
+    /*
+     *  Scope:
+     *  Returns companies that are not imported from cipa
+     */
     public function scopeNotImportedFromCipa($query)
     {
         return $query->whereNull('cipa_updated_at');

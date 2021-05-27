@@ -495,6 +495,16 @@ trait CompanyTraits
 
             }
 
+            /******************************************
+             *  FILTER BY MULTIPLE UINS WITH CIPA     *
+             *****************************************/
+
+            if( in_array('mutiple uins', $statuses) ){
+
+                $companies = $companies->mutipleUins();
+
+            }
+
             /**********************************
              *  FILTER BY OUTDATED WITH CIPA  *
              *********************************/
@@ -769,8 +779,6 @@ trait CompanyTraits
             //  If we have the company template (Means company was found on CIPA side)
             if( $template ){
 
-                Log::debug('Found Template: '.$template['name']);
-
                 /** I noticed that sometimes when "Company B" is imported and store in the database it will only
                  *  contain its uin and no other data until it can be updated during this automatic update process.
                  *  However while "Company B" is waiting to be updated, "Company A" will be first selected and it
@@ -854,14 +862,10 @@ trait CompanyTraits
 
                     }
 
-                }else{
-                    Log::debug('No Duplicate Matches');
                 }
 
                 //  Update the current company instance
                 $this->update($template);
-
-                Log::debug('DO ADDRESSES');
 
                 //  Create or update the company registered office address
                 $this->createOrUpdateResourceAddress(
@@ -884,22 +888,14 @@ trait CompanyTraits
                 //  If this company is marked as a client
                 if( $this->marked_as_client ){
 
-                    Log::debug('DO DIRECTORS');
-
                     //  Create or update the directors
                     $this->createOrUpdateResourceDirectors($template['directors']);
-
-                    Log::debug('DO SHAREHOLDERS');
 
                     //  Create or update the shareholders
                     $this->createOrUpdateResourceShareholders($template['shareholders']);
 
-                    Log::debug('DO OWNERSHIP BUNDLES');
-
                     //  Create or update the ownership bundles
                     $this->createOrUpdateResourceOwnershipBundles($template['ownership_bundles']);
-
-                    Log::debug('DO SECRETARIES');
 
                     //  Create or update the secretaries
                     $this->createOrUpdateResourceSecretaries($template['secretaries']);
@@ -916,8 +912,6 @@ trait CompanyTraits
 
             //  If we don't have the company template (Means company was not found on CIPA side)
             }else{
-
-                Log::debug('Template Not Found');
 
                 //  Set all fields to null
                 $template = collect($this->getFillable())->mapWithKeys(function ($field) {
@@ -946,9 +940,6 @@ trait CompanyTraits
 
     public function handleDuplicateRecord($duplicate_company)
     {
-
-        Log::debug('Remove Duplicate: Name ('.$duplicate_company->name.') - UIN ('.$duplicate_company->uin.')');
-
         //  Update any Shareholder model with owner id and owner type matching the company instance id
         Shareholder::where('owner_id', $duplicate_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
 
@@ -1013,14 +1004,6 @@ trait CompanyTraits
                         //  If the identifier matches the company name
                         $exists_by_name = ( $this->removeSpaces($identifier) == $this->removeSpaces($company_to_sync->name) );
 
-                    }
-
-                    if( $exists_by_uin ){
-                        Log::debug('Found Matching UIN: ('.$identifier.'=='.$company_to_sync->uin.')');
-                    }
-
-                    if( $exists_by_name ){
-                        Log::debug('Found Matching Name: ('.$this->removeSpaces($identifier) .'=='. $this->removeSpaces($company_to_sync->name).')');
                     }
 
                     return ($exists_by_uin || $exists_by_name);

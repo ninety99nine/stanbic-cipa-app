@@ -908,6 +908,14 @@
                         ]
                     },
                     {
+                        label: 'Other',
+                        options: [
+                            {
+                                value: 'Mutiple UINs'
+                            }
+                        ]
+                    },
+                    {
                         label: 'Dates',
                         options: [
                             {
