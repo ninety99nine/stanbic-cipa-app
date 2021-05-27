@@ -955,25 +955,30 @@ trait CompanyTraits
         //  Update any Address model with owner id and owner type matching the company instance id
         Address::where('owner_id', $duplicate_company->id)->where('owner_type', 'company')->update(['owner_id' => $this->id]);
 
-        //  Extract the details of the old uin
-        $old_uin = [
-            'uin' => $duplicate_company->uin,
-            'name' => $duplicate_company->name,
-            'status' => $duplicate_company->company_status
-        ];
+        //  If we have another different uin
+        if( !empty($duplicate_company->uin) && ($this->uin != $duplicate_company->uin) ){
 
-        if( !empty($this->old_uins) ){
+            //  Extract the details of the old uin
+            $old_uin = [
+                'uin' => $duplicate_company->uin,
+                'name' => $duplicate_company->name,
+                'status' => $duplicate_company->company_status
+            ];
 
-            $old_uins = array_merge($this->old_uins, $old_uin);
+            if( !empty($this->old_uins) ){
 
-        }else{
+                $old_uins = array_merge($this->old_uins, $old_uin);
 
-            $old_uins = [$old_uin];
+            }else{
+
+                $old_uins = [$old_uin];
+
+            }
+
+            //  Update the company old uins
+            $this->update(['old_uins' => $old_uins]);
 
         }
-
-        //  Update the company old uins
-        $this->update(['old_uins' => $old_uins]);
 
         // Delete the matched company since we have synched the information to this company instance
         $duplicate_company->delete();
