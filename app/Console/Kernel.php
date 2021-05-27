@@ -76,7 +76,7 @@ class Kernel extends ConsoleKernel
 
         } catch (\Exception $e) {
 
-            Log::error('ERROR Updating company: '.$e->getMessage());
+            //  Log::error('ERROR Updating company: '.$e->getMessage());
 
         }
 
