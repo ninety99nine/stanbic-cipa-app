@@ -962,7 +962,8 @@ trait CompanyTraits
             $old_uin = [
                 'uin' => $duplicate_company->uin,
                 'name' => $duplicate_company->name,
-                'status' => $duplicate_company->company_status
+                'status' => $duplicate_company->company_status,
+                'incorporation_date' => $duplicate_company->incorporation_date
             ];
 
             if( !empty($this->old_uins) ){
