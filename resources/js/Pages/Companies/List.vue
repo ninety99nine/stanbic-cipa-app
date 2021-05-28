@@ -525,12 +525,17 @@
                 <el-table-column v-if="selectedColumns.includes('uin')" min-width="145" prop="uin" label="UIN">
                     <template #default="scope">
                         <span>{{ scope.row.uin }}</span>
-                        <el-popover v-if="scope.row.old_uins" placement="top" :width="650" trigger="hover" >
+                        <el-popover v-if="scope.row.multiple_uins" placement="top" :width="650" trigger="hover" >
                             <template #reference>
-                                <el-tag size="mini" type="warning" class="ml-2">x{{ (scope.row.old_uins.length) }} Multiple UINs</el-tag>
+                                <el-tag size="mini" type="warning" class="ml-2">x{{ (scope.row.multiple_uins.length) }} Multiple UINs</el-tag>
                             </template>
-                            <el-table :data="scope.row.old_uins">
-                                <el-table-column min-width="200" property="name" label="Name"></el-table-column>
+                            <el-table :data="scope.row.multiple_uins">
+                                <el-table-column min-width="200" property="name" label="Name">
+                                    <template #default="scope2">
+                                        <span>{{ scope2.row.name }}</span>
+                                        <el-tag v-if="(scope2.row.selected)" size="mini" class="ml-2">Selected</el-tag>
+                                    </template>
+                                </el-table-column>
                                 <el-table-column min-width="150" property="uin" label="UIN"></el-table-column>
                                 <el-table-column min-width="100" prop="status" label="Status">
                                     <template #default="scope">
@@ -1449,7 +1454,7 @@
                             annual_return_last_filed_date: company.annual_return_last_filed_date,
                             marked_as_client: company.marked_as_client,
                             details: company.details,
-                            old_uins: company.old_uins,
+                            multiple_uins: company.multiple_uins,
 
                             principal_place_of_business_lines: company.principal_place_of_business_lines,
                             registered_office_address_lines: company.registered_office_address_lines,

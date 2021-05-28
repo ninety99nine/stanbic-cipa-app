@@ -17,7 +17,7 @@ class CreateCompaniesTable extends Migration
             $table->id();
             $table->string('uin')->nullable();
             $table->string('name')->nullable();
-            $table->json('old_uins')->nullable();
+            $table->json('multiple_uins')->nullable();
             $table->string('info', 500)->nullable();
             $table->string('company_status')->nullable();
             $table->char('exempt', 1)->nullable();

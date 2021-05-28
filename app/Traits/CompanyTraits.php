@@ -958,12 +958,16 @@ trait CompanyTraits
         //  If we have another different uin
         if( !empty($duplicate_company->uin) && ($this->uin != $duplicate_company->uin) ){
 
+            $multiple_uins = array_merge(($this->multiple_uins ?? []), ($duplicate_company->multiple_uins ?? []));
+
             //  Extract the details of the current uin
             $current_uin = [
                 'uin' => $this->uin,
                 'name' => $this->name,
                 'status' => $this->company_status,
-                'incorporation_date' => $this->incorporation_date
+                'incorporation_date' => $this->incorporation_date,
+                'selected' => true
+
             ];
 
             //  Extract the details of the old uin
@@ -971,21 +975,22 @@ trait CompanyTraits
                 'uin' => $duplicate_company->uin,
                 'name' => $duplicate_company->name,
                 'status' => $duplicate_company->company_status,
-                'incorporation_date' => $duplicate_company->incorporation_date
+                'incorporation_date' => $duplicate_company->incorporation_date,
+                'selected' => false
             ];
 
-            if( !empty($this->old_uins) ){
+            if( !empty($multiple_uins) ){
 
-                $old_uins = array_merge($this->old_uins, $old_uin);
+                $multiple_uins = array_merge($multiple_uins, [$old_uin]);
 
             }else{
 
-                $old_uins = [$current_uin, $old_uin];
+                $multiple_uins = array_merge($multiple_uins, [$current_uin, $old_uin]);
 
             }
 
             //  Update the company old uins
-            $this->update(['old_uins' => $old_uins]);
+            $this->update(['multiple_uins' => $multiple_uins]);
 
         }
 
