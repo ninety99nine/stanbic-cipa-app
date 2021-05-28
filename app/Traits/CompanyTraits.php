@@ -958,6 +958,14 @@ trait CompanyTraits
         //  If we have another different uin
         if( !empty($duplicate_company->uin) && ($this->uin != $duplicate_company->uin) ){
 
+            //  Extract the details of the current uin
+            $current_uin = [
+                'uin' => $this->uin,
+                'name' => $this->name,
+                'status' => $this->company_status,
+                'incorporation_date' => $this->incorporation_date
+            ];
+
             //  Extract the details of the old uin
             $old_uin = [
                 'uin' => $duplicate_company->uin,
@@ -972,7 +980,7 @@ trait CompanyTraits
 
             }else{
 
-                $old_uins = [$old_uin];
+                $old_uins = [$current_uin, $old_uin];
 
             }
 

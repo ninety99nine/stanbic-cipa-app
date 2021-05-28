@@ -525,6 +525,24 @@
                 <el-table-column v-if="selectedColumns.includes('uin')" min-width="145" prop="uin" label="UIN">
                     <template #default="scope">
                         <span>{{ scope.row.uin }}</span>
+                        <el-popover v-if="scope.row.old_uins" placement="top" :width="650" trigger="hover" >
+                            <template #reference>
+                                <el-tag size="mini" type="warning" class="ml-2">x{{ (scope.row.old_uins.length) }} Multiple UINs</el-tag>
+                            </template>
+                            <el-table :data="scope.row.old_uins">
+                                <el-table-column min-width="200" property="name" label="Name"></el-table-column>
+                                <el-table-column min-width="150" property="uin" label="UIN"></el-table-column>
+                                <el-table-column min-width="100" prop="status" label="Status">
+                                    <template #default="scope">
+                                        <span class="capitalize">
+                                            <el-tag v-if="scope.row.status == 'Registered'" size="small" type="success">{{ scope.row.status }}</el-tag>
+                                            <el-tag v-else size="small" type="danger">{{ scope.row.status }}</el-tag>
+                                        </span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column min-width="150" property="incorporation_date" label="Incorporation Date"></el-table-column>
+                            </el-table>
+                        </el-popover>
                     </template>
                 </el-table-column>
                 <el-table-column v-if="selectedColumns.includes('company status')" min-width="100" prop="company_status" label="Status" sortable>
@@ -1431,6 +1449,7 @@
                             annual_return_last_filed_date: company.annual_return_last_filed_date,
                             marked_as_client: company.marked_as_client,
                             details: company.details,
+                            old_uins: company.old_uins,
 
                             principal_place_of_business_lines: company.principal_place_of_business_lines,
                             registered_office_address_lines: company.registered_office_address_lines,
