@@ -75,7 +75,7 @@ class OwnershipBundlesExport implements FromQuery, WithHeadings, WithMapping, Wi
         $company_sub_type = $ownership_bundle->company->company_sub_type;
         $company_incorporation_date = $ownership_bundle->company->incorporation_date;
 
-        $shareholder_percentage_of_shares = $ownership_bundle->percentage_of_shares;
+        $shareholder_percentage_of_shares = $ownership_bundle->percentage_of_shares->original;
         $shareholder_number_of_shares = $ownership_bundle->number_of_shares;
         $shareholder_total_shares = $ownership_bundle->total_shares;
         $shareholder_name = $ownership_bundle->shareholder_name;
