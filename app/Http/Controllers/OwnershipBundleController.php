@@ -55,16 +55,16 @@ class OwnershipBundleController extends Controller
         }
     }
 
-    public function getCompany($company_id)
+    public function exportOwnershipBundles(Request $request)
     {
         try {
 
-            //  Return a single company
-            return (new OwnershipBundle)->getResource($company_id)->convertToApiFormat();
+            //  Export a list of ownership bundles
+            return (new OwnershipBundle)->exportResources($request);
 
         } catch (\Exception $e) {
 
-            return help_handle_exception($e);
+            throw ($e);
 
         }
     }

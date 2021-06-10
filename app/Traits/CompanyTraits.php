@@ -958,6 +958,15 @@ trait CompanyTraits
         //  If we have another different uin
         if( !empty($duplicate_company->uin) && ($this->uin != $duplicate_company->uin) ){
 
+            //  Make sure that the duplicate multiple uins are not selected anymore
+            $duplicate_company->multiple_uins = collect($duplicate_company->multiple_uins ?? [])->map(function($multiple_uin){
+
+                $multiple_uin['selected'] = false;
+
+                return $multiple_uin;
+
+            })->toArray();
+
             $multiple_uins = array_merge(($this->multiple_uins ?? []), ($duplicate_company->multiple_uins ?? []));
 
             //  Extract the details of the current uin
@@ -988,6 +997,11 @@ trait CompanyTraits
                 $multiple_uins = array_merge($multiple_uins, [$current_uin, $old_uin]);
 
             }
+
+            //  Make sure we only have unique entries
+            $multiple_uins = collect($multiple_uins)->unique(function ($multiple_uin) {
+                return $multiple_uin['uin'].$multiple_uin['incorporation_date'];
+            })->values()->all();
 
             //  Update the company old uins
             $this->update(['multiple_uins' => $multiple_uins]);
@@ -1627,7 +1641,7 @@ trait CompanyTraits
                             'is_shareholder_to_self' => $is_shareholder_to_self,
                             'number_of_shares' => $occurances[$shareholder_id]['total_number_of_shares'],
                             'total_shareholder_occurances' => $occurances[$shareholder_id]['total_occurances'],
-                            'percentage_of_shares' => round($occurances[$shareholder_id]['total_number_of_shares'] / $total_shares * 100, 2)
+                            'percentage_of_shares' => round($occurances[$shareholder_id]['total_number_of_shares'] / $total_shares * 100, 7)
                         ]
                     );
 

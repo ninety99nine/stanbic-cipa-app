@@ -2,10 +2,9 @@
 
 namespace App\Traits;
 
-use App\Exports\CompaniesExport;
-use App\Imports\CompaniesImport;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\OwnershipBundlesExport;
 use Illuminate\Database\Eloquent\Builder;
 
 trait OwnershipBundleTraits
@@ -571,23 +570,7 @@ trait OwnershipBundleTraits
             $file_name = 'ownership.'.$export_type;
 
             //  Download the excel data
-            return Excel::download(new CompaniesExport($ownershipBundles), $file_name);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method imports a list of ownership bundles
-     */
-    public function importResources($data = [])
-    {
-        try {
-
-            Excel::import(new CompaniesImport, request()->file('excelFile'));
+            return Excel::download(new OwnershipBundlesExport($ownershipBundles), $file_name);
 
         } catch (\Exception $e) {
 

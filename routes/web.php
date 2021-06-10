@@ -60,6 +60,16 @@ Route::prefix('ownership')->namespace('App\Http\Controllers')->middleware(['auth
 
     Route::get('/', 'OwnershipBundleController@getOwnershipBundles')->name('ownership-bundles');
 
+    // Route for export/download tabledata to .csv, .xls or .xlsx
+    Route::get('/export', 'OwnershipBundleController@exportOwnershipBundles')->name('ownership-bundles-export');
+
+});
+
+//  Users Resource Routes
+Route::prefix('users')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', 'UserController@getUsers')->name('users');
+
 });
 
 // Route for view/blade file.

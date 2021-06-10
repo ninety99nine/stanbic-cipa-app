@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use App\Traits\CommonTraits;
+use App\Traits\UserTraits;
 
 class User extends Authenticatable
 {
@@ -17,6 +19,8 @@ class User extends Authenticatable
     use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
+    use CommonTraits;
+    use UserTraits;
 
     /**
      * The attributes that are mass assignable.
@@ -58,4 +62,17 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    /*
+     *  Scope:
+     *  Returns users that match the given user roles
+     */
+    public function scopeUserRoles($query, $user_roles)
+    {
+        if( is_array($user_roles) ){
+            return $query->whereIn('role', $user_roles);
+        }else{
+            return $query->where('role', $user_roles);
+        }
+    }
 }

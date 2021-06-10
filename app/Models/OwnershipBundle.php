@@ -538,7 +538,30 @@ class OwnershipBundle extends Model
 
     public function getPercentageOfSharesAttribute($value)
     {
-        return round($value, 2);
+        /**
+         *  floatval() removes any useless "0" e.g
+         *
+         *  "100.0000000" to "100"
+         *  "0.005000000" to "0.005"
+         */
+
+        return [
+            'rounded' => floatval( round($value, 2) ),
+            'original' => floatval( $value )
+        ];
+    }
+
+    /**
+     *  Company registration status
+     */
+    public function getIsShareholderToSelfAttribute($value)
+    {
+        $status = ($this->company_status == 'Registered');
+
+        return [
+            'status' => $value,
+            'name' => $value ? 'Yes' : 'No',
+        ];
     }
 
 }

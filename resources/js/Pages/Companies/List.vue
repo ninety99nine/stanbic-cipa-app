@@ -37,11 +37,6 @@
                 <el-input v-model="searchWord" :disabled="isBulkUpdating" placeholder="Search companies" prefix-icon="el-icon-search"
                           size="small" class="outline-none mr-2" :style="{ outline: 'none' }" clearable @keyup.enter="fetchCompanies()"
                           @clear="fetchCompanies()">
-                    <template #prepend>
-                        <el-select v-model="searchType" placeholder="Select" :style="{ width: '110px' }">
-                            <el-option v-for="(searchType, index) in searchTypes" :key="index" :label="searchType.name" :value="searchType.value"></el-option>
-                        </el-select>
-                    </template>
                 </el-input>
                 <jet-button :height="32" @click="fetchCompanies()" :disabled="isBulkUpdating">Search</jet-button>
             </div>
@@ -307,8 +302,6 @@
                 <template v-if ="searchWord">
                     <span class="mr-2">Search:</span>
                     <span class="text-green-500">{{ searchWord }}</span>
-                    <span class="font-light mx-1">within</span>
-                    <span class="text-green-500">{{ selectedSearchTypeName }}</span>
                 </template>
             </div>
 
@@ -1018,17 +1011,6 @@
                 minizeFilterSettings: false,
                 tableData: [],
                 searchWord: '',
-                searchType: 'internal',
-                searchTypes: [
-                    {
-                        name: 'Stanbic',
-                        value: 'internal'
-                    },
-                    {
-                        name: 'CIPA',
-                        value: 'external'
-                    }
-                ],
                 multipleSelection: [],
                 percentage: 30,
                 updatingIndexes: [],
@@ -1056,9 +1038,6 @@
             },
             selectedSortByTypeName(){
                 return this.sortByTypeOptions.find(sortByTypeOption => sortByTypeOption.value == this.selectedSortByType).name;
-            },
-            selectedSearchTypeName(){
-                return this.searchTypes.find(searchType => searchType.value == this.searchType).name;
             },
             fillingMonthOptions(){
 
@@ -1112,7 +1091,6 @@
                 if( this.searchWord ){
 
                     url_append.search = this.searchWord;
-                    url_append.search_type = this.searchType;
 
                 }
 
@@ -1491,17 +1469,6 @@
 
                 }
             },
-            setSearchTypeFromUrl(){
-
-                if( route().params ){
-
-                    if( route().params.search_type ){
-
-                        this.searchType = route().params.search_type;
-                    }
-
-                }
-            },
             setFiltersFromUrl(){
 
                 if( route().params ){
@@ -1552,7 +1519,6 @@
         },
         created(){
             this.setSearchFromUrl();
-            this.setSearchTypeFromUrl();
             this.setFiltersFromUrl();
             this.setFilterSettingsFromUrl();
             this.setSortByFromUrl();

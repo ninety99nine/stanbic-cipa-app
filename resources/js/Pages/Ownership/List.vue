@@ -47,11 +47,11 @@
                         </jet-button>
                         <template #dropdown>
                             <el-dropdown-menu>
-                                <el-dropdown-item icon="el-icon-refresh-right">Refresh</el-dropdown-item>
-                                <el-dropdown-item divided>Sort By</el-dropdown-item>
-                                <el-dropdown-item>Select Columns</el-dropdown-item>
+                                <el-dropdown-item icon="el-icon-refresh-right" @click="fetchOwnershipBundles()">Refresh</el-dropdown-item>
+                                <el-dropdown-item divided @click="showSortBy = true">Sort By</el-dropdown-item>
+                                <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
                                 <el-dropdown-item icon="el-icon-download" divided>
-                                    <a href="#">Export to Excel</a>
+                                    <a :href="exportUrl">Export to Excel</a>
                                 </el-dropdown-item>
                             </el-dropdown-menu>
                         </template>
@@ -213,6 +213,59 @@
 
         </div>
 
+        <div v-if="showSortBy" class="bg-gray-50 p-5 mb-4 border-b-2 border-blue-100">
+
+            <div class="flex justify-between">
+                <h4 class="font-bold text-gray-500">Sort By</h4>
+                <jet-button @click="showSortBy = false">
+                    <i class="el-icon-close text-white"></i>
+                </jet-button>
+            </div>
+
+            <div class="my-5">
+
+                <el-select v-model="selectedSortBy" placeholder="Select" class="mr-4" @change="fetchOwnershipBundles()">
+                    <el-option
+                        v-for="sortByOption in sortByOptions"
+                        :key="sortByOption.value"
+                        :label="sortByOption.name"
+                        :value="sortByOption.value"
+                        :disabled="sortByOption.value == 'company_name'">
+                    </el-option>
+                </el-select>
+
+                <el-select v-model="selectedSortByType" placeholder="Select" @change="fetchOwnershipBundles()">
+                    <el-option
+                        v-for="sortByTypeOption in sortByTypeOptions"
+                        :key="sortByTypeOption.value"
+                        :label="sortByTypeOption.name"
+                        :value="sortByTypeOption.value">
+                    </el-option>
+                </el-select>
+
+            </div>
+
+        </div>
+
+        <div v-if="showSelectedColumns" class="bg-gray-50 p-5 mb-4 border-b-2 border-blue-100">
+
+            <div class="flex justify-between">
+                <h4 class="font-bold text-gray-500">Table Columns</h4>
+                <jet-button @click="toggleSelectedColumns()">
+                    <i class="el-icon-close text-white"></i>
+                </jet-button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-4 my-5">
+
+                <div v-for="(tableColumn, index) in tableColumns" :key="index">
+                    <el-checkbox v-model="tableColumn.status" class="capitalize">{{ tableColumn.name }}</el-checkbox>
+                </div>
+
+            </div>
+
+        </div>
+
         <div class="grid grid-cols-3 border-b border-t my-3">
 
             <div class="font-bold text-gray-500 text-sm mt-2">
@@ -245,7 +298,8 @@
 
             <!-- Table -->
             <el-table :data="tableData">
-                <el-table-column min-width="40" fixed>
+
+                <el-table-column v-if="selectedColumns.includes('compliant indicator')" min-width="40" fixed>
                     <template #default="scope">
                         <el-popover v-if="scope.row.is_imported_from_cipa" placement="top-start" :title="scope.row.is_compliant.name" :width="190" trigger="hover">
                             <template #reference>
@@ -260,7 +314,8 @@
                         </el-popover>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="250" prop="company_name" label="Company" fixed>
+
+                <el-table-column v-if="selectedColumns.includes('company name')" min-width="250" prop="company_name" label="Company" fixed>
                     <template #default="scope">
                         <span :style="{ wordBreak: 'break-word' }">
                             <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.company_name)">{{ scope.row.company_name }}</span>
@@ -270,7 +325,8 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="100" prop="company_status" label="Status" fixed>
+
+                <el-table-column v-if="selectedColumns.includes('company status')" min-width="100" prop="company_status" label="Status" fixed>
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
                             <span class="capitalize">
@@ -280,7 +336,8 @@
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="300" prop="name" label="Shareholder" fixed>
+
+                <el-table-column v-if="selectedColumns.includes('shareholder')" min-width="300" prop="name" label="Shareholder" fixed>
                     <template #default="scope">
                         <div :style="{ wordBreak: 'break-word' }">
                             <span class="text-blue-500 text-lg mr-2">
@@ -290,32 +347,49 @@
                             </span>
                             <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.shareholder_name)">{{ scope.row.shareholder_name }}</span>
                             <el-tag v-if="scope.row.total_shareholder_occurances > 1" size="mini" type="warning" class="ml-2">x{{ scope.row.total_shareholder_occurances }} duplicates</el-tag>
-                            <el-tag v-if="scope.row.is_shareholder_to_self" size="mini" type="warning" class="ml-2">shareholder to itself</el-tag>
+                            <el-tag v-if="scope.row.is_shareholder_to_self.status" size="mini" type="warning" class="ml-2">shareholder to itself</el-tag>
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="100" prop="percentage_of_shares" label="% of shares" align="center">
+
+                <el-table-column v-if="selectedColumns.includes('% of shares')" min-width="100" prop="percentage_of_shares" label="% of shares" align="center">
                     <template #default="scope">
-                        <span class="font-bold text-2xl text-blue-400">{{ scope.row.percentage_of_shares }}</span>
-                        <span class="text-xs text-blue-400">%</span>
+                        <el-popover placement="top" :width="180" trigger="hover">
+                            <template #reference>
+                                <div>
+                                    <span class="font-bold text-2xl text-blue-400">
+                                        <span v-if="scope.row.percentage_of_shares.rounded == 100 && (scope.row.percentage_of_shares.number_of_shares < scope.row.percentage_of_shares.total_shares)">~</span>
+                                        <span>{{ scope.row.percentage_of_shares.rounded }}</span>
+                                    </span>
+                                    <span class="text-xs text-blue-400">%</span>
+                                </div>
+                            </template>
+                            <span class="block text-center font-bold text-xl text-blue-400">{{ scope.row.percentage_of_shares.original }}%</span>
+                        </el-popover>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="100" prop="number_of_shares" label="# of shares" align="center"></el-table-column>
-                <el-table-column min-width="100" prop="total_shares" label="Total shares" align="center"></el-table-column>
-                <el-table-column min-width="100" prop="nominee" label="Nominee" align="center"></el-table-column>
-                <el-table-column min-width="100" prop="is_director" label="Director" align="center">
+
+                <el-table-column v-if="selectedColumns.includes('number of shares')" min-width="120" prop="number_of_shares" label="# of shares" align="center"></el-table-column>
+
+                <el-table-column v-if="selectedColumns.includes('total shares')" min-width="120" prop="total_shares" label="Total shares" align="center"></el-table-column>
+
+                <el-table-column v-if="selectedColumns.includes('nominee')" min-width="100" prop="nominee" label="Nominee" align="center"></el-table-column>
+
+                <el-table-column v-if="selectedColumns.includes('director')" min-width="100" prop="is_director" label="Director" align="center">
                     <template #default="scope">
                         <span>{{ scope.row.is_director ? 'Yes' : 'No' }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="210" prop="shareholder_appointment_date" label="Shareholder appointed date">
+
+                <el-table-column v-if="selectedColumns.includes('shareholder appointment date')" min-width="210" prop="shareholder_appointment_date" label="Shareholder appointed date">
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
                             <span>{{ scope.row.shareholder_appointment_date }}</span>
                         </span>
                     </template>
                 </el-table-column>
-                <el-table-column min-width="200" prop="shareholder_ceased_date" label="Shareholder ceased date">
+
+                <el-table-column v-if="selectedColumns.includes('shareholder ceased date')" min-width="200" prop="shareholder_ceased_date" label="Shareholder ceased date">
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
                             <span>{{ scope.row.shareholder_ceased_date }}</span>
@@ -323,7 +397,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column min-width="190" prop="director_appointment_date" label="Director appointed date">
+                <el-table-column v-if="selectedColumns.includes('director appointment date')" min-width="190" prop="director_appointment_date" label="Director appointed date">
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
                             <span>{{ scope.row.director_appointment_date }}</span>
@@ -331,7 +405,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column min-width="180" prop="director_ceased_date" label="Director ceased date">
+                <el-table-column v-if="selectedColumns.includes('director ceased date')" min-width="180" prop="director_ceased_date" label="Director ceased date">
                     <template #default="scope">
                         <span v-if="scope.row.is_imported_from_cipa">
                             <span>{{ scope.row.director_ceased_date }}</span>
@@ -339,7 +413,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column min-width="250" prop="residential_addresses" label="Residential address">
+                <el-table-column v-if="selectedColumns.includes('residential addresses')" min-width="250" prop="residential_addresses" label="Residential address">
                     <template #default="scope">
                         <span v-if="scope.row.owner_type == 'individual'" :style="{ wordBreak: 'break-word' }">
                             <span v-if="scope.row.residential_addresses">
@@ -350,7 +424,7 @@
                     </template>
                 </el-table-column>
 
-                <el-table-column min-width="250" prop="postal_addresses" label="Postal address">
+                <el-table-column v-if="selectedColumns.includes('postal addresses')" min-width="250" prop="postal_addresses" label="Postal address">
                     <template #default="scope">
                         <span v-if="scope.row.owner_type == 'individual'" :style="{ wordBreak: 'break-word' }">
                             <span v-if="scope.row.postal_addresses">
@@ -639,24 +713,110 @@
                     director_ceased_start_date: null,
                     director_ceased_end_date: null,
                 },
-                shareholderToSpecificType: 'Minimum',
 
                 //  Sorting attributes
                 showSortBy: false,
-                selectedSortBy: 'updated_at',
-                selectedSortByType: 'desc',
+                selectedSortBy: 'created_at',
+                selectedSortByType: 'asc',
                 sortByOptions: [
                     {
-                        name: 'Appointment Date',
-                        value: 'appointment_date'
+                        name: 'Company Name',
+                        value: 'company_name'
                     },
                     {
-                        name: 'Ceased Date',
-                        value: 'ceased_date'
+                        name: 'Shareholder Name',
+                        value: 'shareholder_name'
                     },
                     {
-                        name: 'Updated Date',
-                        value: 'updated_at'
+                        name: 'Percentage of shares',
+                        value: 'percentage_of_shares'
+                    },
+                    {
+                        name: 'Number of shares',
+                        value: 'number_of_shares'
+                    },
+                    {
+                        name: 'Total shares',
+                        value: 'total_shares'
+                    },
+                    {
+                        name: 'Created Date',
+                        value: 'created_at'
+                    }
+                ],
+                sortByTypeOptions: [
+                    {
+                        name: 'Ascending',
+                        value: 'asc',
+                    },
+                    {
+                        name: 'Descending',
+                        value: 'desc'
+                    }
+                ],
+
+                //  Columns
+                showSelectedColumns: false,
+                tableColumns: [
+                    {
+                        name: 'compliant indicator',
+                        status: true
+                    },
+                    {
+                        name: 'company name',
+                        status: true
+                    },
+                    {
+                        name: 'company status',
+                        status: true
+                    },
+                    {
+                        name: 'shareholder',
+                        status: true
+                    },
+                    {
+                        name: '% of shares',
+                        status: true
+                    },
+                    {
+                        name: 'number of shares',
+                        status: true
+                    },
+                    {
+                        name: 'total shares',
+                        status: true
+                    },
+                    {
+                        name: 'nominee',
+                        status: true
+                    },
+                    {
+                        name: 'director',
+                        status: true
+                    },
+                    {
+                        name: 'shareholder appointment date',
+                        status: true
+                    },
+                    {
+                        name: 'shareholder ceased date',
+                        status: true
+                    },
+                    {
+                        name: 'director appointment date',
+                        status: true
+                    },
+                    {
+                        name: 'director ceased date',
+                        status: true
+                    },
+                    {
+                        name: 'residential addresses',
+                        status: true
+                    },
+                    {
+                        name: 'postal addresses',
+                        status: true
                     }
                 ],
 
@@ -668,6 +828,13 @@
             }
         },
         computed:{
+            selectedColumns(){
+                return this.tableColumns.filter(function(tableColumn){
+                    return (tableColumn.status == true);
+                }).map(function(tableColumn){
+                    return tableColumn.name;
+                });
+            },
             pageSize(){
                 return parseInt(this.ownership_bundles.per_page);
             },
@@ -876,9 +1043,14 @@
 
                 }
             },
-
+            exportUrl(){
+                return route('ownership-bundles-export') + this.urlQueryParamsAsString;
+            }
         },
         methods:{
+            toggleSelectedColumns(){
+                this.showSelectedColumns = !this.showSelectedColumns;
+            },
             companyStatusOptions(){
                 return ((this.dynamic_filter_options || {}).company_statuses || []).map((status) => {
                     return {
@@ -990,7 +1162,6 @@
                             data.owner_type = ownership_bundle.shareholder.owner_type;
                             data.shareholder_appointment_date = ownership_bundle.shareholder.appointment_date;
                             data.shareholder_ceased_date = ownership_bundle.shareholder.ceased_date;
-
 
                             //  Additional Shareholder details (If Individual Shareholder)
                             if( ownership_bundle.shareholder.owner_type == 'individual' ){
