@@ -56,7 +56,7 @@
 
             <div class="flex justify-end items-start">
 
-                <div>
+                <div v-if="$page.props.can.includes('import companies')">
                     <el-popover placement="top" content="Add one or more clients" :width="200"
                                 trigger="hover" :key="addClientPopoverKey">
                         <template #reference>
@@ -111,7 +111,7 @@
                                 <el-dropdown-item icon="el-icon-refresh-right" @click="fetchCompanies()">Refresh</el-dropdown-item>
                                 <el-dropdown-item divided @click="showSortBy = true">Sort By</el-dropdown-item>
                                 <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
-                                <el-dropdown-item icon="el-icon-download" divided>
+                                <el-dropdown-item v-if="$page.props.can.includes('export companies')" icon="el-icon-download" divided>
                                     <a :href="exportCompaniesUrl">Export to Excel</a>
                                 </el-dropdown-item>
                             </el-dropdown-menu>
@@ -123,7 +123,7 @@
 
         </div>
 
-        <div v-if="addClient" class="bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 py-5">
+        <div v-if="addClient && $page.props.can.includes('import companies')" class="bg-gray-50 border-b-2 border-blue-100 mb-4 px-5 py-5">
 
             <div class="flex justify-between">
                 <h4 class="font-bold text-gray-500">Add Client</h4>
@@ -359,7 +359,7 @@
                                         <div v-for="(director, index) in scope.row.directors" :key="index"
                                             class="bg-white rounded-sm shadow-md border p-4 mb-2">
                                             <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                <a :href="route('ownership-bundles', {search: director.individual.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                <a :href="route('shareholders', {search: director.individual.full_name})" class="font-bold text-blue-800 underline cursor-pointer">
                                                     <span class="mr-1">{{ director.individual.full_name }}</span>
                                                 </a>
                                                 <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreDirectorToggle(director.individual.id)">{{ this.expandedDirectors.includes(director.individual.id) ? 'Show Less' : 'Show More' }}</span>
@@ -390,7 +390,7 @@
 
                                             <template v-if="shareholder.owner.resource_type == 'individual'">
                                                 <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                    <a :href="route('ownership-bundles', {search: shareholder.owner.full_name, search_type: 'any'})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                    <a :href="route('shareholders', {search: shareholder.owner.full_name})" class="font-bold text-blue-800 underline cursor-pointer">
                                                         <span class="mr-1">{{ shareholder.owner.full_name }}</span>
                                                     </a>
                                                     <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreShareholderToggle(shareholder.owner.id)">{{ this.expandedShareholders.includes(shareholder.owner.id) ? 'Show Less' : 'Show More' }}</span>
@@ -415,9 +415,9 @@
                                                 <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
                                                     <span class="font-bold">
                                                         <span v-if="shareholder.owner.uin" class="mr-1">{{ shareholder.owner.name }}</span>
-                                                        <a v-else :href="route('ownership-bundles', {search: shareholder.owner.name, search_type: 'any'})" class="text-blue-800 underline cursor-pointer">{{ shareholder.owner.name }}</a>
+                                                        <a v-else :href="route('shareholders', {search: shareholder.owner.name})" class="text-blue-800 underline cursor-pointer">{{ shareholder.owner.name }}</a>
                                                         <span v-if="shareholder.owner.uin">
-                                                            (<a :href="route('ownership-bundles', {search: shareholder.owner.uin, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.owner.uin }}</a>)
+                                                            (<a :href="route('shareholders', {search: shareholder.owner.uin})" class="text-blue-800 text-xs underline cursor-pointer">{{ shareholder.owner.uin }}</a>)
                                                         </span>
                                                     </span>
                                                     <span class="text-blue-800 text-xs underline cursor-pointer" :style="{ minWidth: '65px' }" @click="handleShowMoreShareholderToggle(shareholder.owner.id)">{{ this.expandedShareholders.includes(shareholder.owner.id) ? 'Show Less' : 'Show More' }}</span>
@@ -465,8 +465,27 @@
                                             </div>
 
                                             <div v-for="(ownership_bundle, index) in scope.row.ownership_bundles" :key="index" class="grid grid-cols-2 px-2 px-4 mb-2">
-                                                <span class="block">{{ ownership_bundle.shareholder_name }}</span>
-                                                <span class="block">{{ ownership_bundle.percentage_of_shares }}%</span>
+
+                                                <span class="block">
+                                                    <a :href="route('shareholders', {search: ownership_bundle.shareholder_name})" class="font-bold text-blue-800 underline cursor-pointer">
+                                                        <span>{{ ownership_bundle.shareholder_name }}</span>
+                                                    </a>
+                                                </span>
+
+                                                <span class="w-min">
+                                                    <el-popover placement="top" :width="180" trigger="hover">
+                                                        <template #reference>
+                                                            <div>
+                                                                <span class="font-bold">
+                                                                    <span v-if="ownership_bundle.percentage_of_shares.rounded == 100 && (ownership_bundle.percentage_of_shares.number_of_shares < ownership_bundle.percentage_of_shares.total_shares)">~</span>
+                                                                    <span>{{ ownership_bundle.percentage_of_shares.rounded }}</span>
+                                                                </span>
+                                                                <span class="text-xs">%</span>
+                                                            </div>
+                                                        </template>
+                                                        <span class="block text-center font-bold text-xl text-blue-400">{{ ownership_bundle.percentage_of_shares.original }}%</span>
+                                                    </el-popover>
+                                                </span>
                                             </div>
 
                                         </div>
@@ -482,7 +501,7 @@
 
                                         <template v-if="secretary.individual_secretary">
                                             <div class="flex justify-between mb-2 pb-2 border-dotted border-b">
-                                                <a :href="route('ownership-bundles', {search: secretary.individual_secretary.individual_name.first_name, search_type: 'any'})" class="text-blue-800 text-xs underline cursor-pointer">
+                                                <a :href="route('shareholders', {search: secretary.individual_secretary.individual_name.first_name})" class="text-blue-800 text-xs underline cursor-pointer">
                                                     <span class="mr-1">{{ secretary.individual_secretary.individual_name.first_name }}</span>
                                                     <span v-if="secretary.individual_secretary.individual_name.middle_names" class="mr-1">{{ secretary.individual_secretary.individual_name.middle_names }}</span>
                                                     <span>{{ secretary.individual_secretary.individual_name.last_name }}</span>

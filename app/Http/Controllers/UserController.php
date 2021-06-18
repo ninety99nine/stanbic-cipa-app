@@ -4,59 +4,33 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
+use \Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use \Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Validator;
+use App\Actions\Fortify\PasswordValidationRules;
+
 
 class UserController extends Controller
 {
-    private $user;
-
-    public function __construct(Request $request)
-    {
-        //  Get the authenticated user
-        $this->user = Auth::user();
-    }
-
-    public function createUser(Request $request)
-    {
-        try {
-
-            //  Return a new user
-            return (new User)->createResource($request, $this->user)->convertToApiFormat();
-
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
-
-        }
-    }
-
-    public function updateUser(Request $request, $user_id)
-    {
-        try {
-
-            //  Update the user
-            return (new User)->getResource($user_id)->requestCipaUpdate();
-
-        } catch (\Exception $e) {
-
-            throw ($e);
-
-        }
-    }
+    use PasswordValidationRules;
 
     public function getUsers(Request $request)
     {
         try {
 
+            //  Return a list of roles
+            $roles = Role::all();
+
+            //  Return a list of permissions
+            $permissions = Permission::all();
+
             //  Return a list of users
             $users = (new User)->getResources($request);
 
-            return Inertia::render('Users/List', [
-                'users' => $users
-            ]);
+            return Inertia::render('Users/List', ['users' => $users, 'roles' => $roles, 'permissions' => $permissions]);
 
         } catch (\Exception $e) {
 
@@ -65,61 +39,81 @@ class UserController extends Controller
         }
     }
 
-    public function exportUsers(Request $request)
+    public function createUser(Request $request)
     {
-        try {
+        Validator::make($request->all(), [
+            'role' => ['required', 'exists:roles,name'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users']
+        ])->validate();
 
-            //  Export a list of users
-            return (new User)->exportResources($request);
+        //  Generate the temporary password
+        $temporary_password = Hash::make(Str::random(8));
 
-        } catch (\Exception $e) {
+        //  Create user
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $temporary_password
+        ]);
 
-            throw ($e);
+        //  Assign role to user
+        $user->assignRole($request->role);
 
-        }
+        return redirect()->back()->with('message', 'Created Successfully');
+
     }
 
-    public function importUsers(Request $request)
+    public function updateUser(Request $request, $user_id)
     {
-        try {
+        Validator::make($request->all(), [
+            'role' => ['required', 'exists:roles,name'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255']
+        ])->validate();
 
-            //  Import a list of users
-            (new User)->importResources($request);
+        $user = User::find($user_id);
 
-            return redirect()->route('users');
+        if( $user ){
 
-        } catch (\Exception $e) {
+            $data = [
+                'name' => $request->name,
+                'email' => $request->email,
+            ];
 
-            throw ($e);
+            //  If we would like to reset the password
+            if( $request->input('reset_password') == true ){
+
+                //  Generate the temporary password
+                $temporary_password = Hash::make(Str::random(8));
+
+                //  Reset password
+                $data['password'] = Hash::make($temporary_password);
+
+            }
+
+            //  Update user
+            $user->update($data);
+
+            // Remove current roles and replace by the array given
+            $user->syncRoles([$request->role]);
 
         }
-    }
 
-    public function getUser($user_id)
-    {
-        try {
-
-            //  Return a single user
-            return (new User)->getResource($user_id)->convertToApiFormat();
-
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
-
-        }
+        return redirect()->back()->with('message', 'Updated Successfully');
     }
 
     public function deleteUser($user_id)
     {
-        try {
+        $user = User::find($user_id);
 
-            //  Delete the user
-            return (new User)->getResource($user_id)->deleteResource($this->user);
+        if( $user ){
 
-        } catch (\Exception $e) {
-
-            return help_handle_exception($e);
+            $user->delete();
 
         }
+
+        return redirect()->back()->with('message', 'Deleted Successfully');
+
     }
 }

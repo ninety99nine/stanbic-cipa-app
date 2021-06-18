@@ -49,13 +49,13 @@ class Kernel extends ConsoleKernel
                  *  to search the matching record on CIPA side ($this->uin). The Eloquest instance can
                  *  then be used to update the company e.g $this->update([ ... ]);
                  */
-                $companies_to_update = \App\Models\Company::whereNotNull('uin')->oldest('cipa_updated_at');
+                $companies_to_update = \App\Models\Company::without('addresses')->whereNotNull('uin')->oldest('cipa_updated_at')->limit(1000);
 
                 /**
                  *  We need the id, uin and name to later search for any duplicates so
                  *  that we can sync any company records that should match.
                  */
-                $companies_to_sync = \App\Models\Company::select(['id', 'uin', 'name', 'multiple_uins', 'company_status', 'incorporation_date', 're_registration_date'])->get();
+                $companies_to_sync = \App\Models\Company::without('addresses')->select(['id', 'uin', 'name', 'multiple_uins', 'company_status', 'incorporation_date', 're_registration_date'])->get();
 
                 //  Only query 100 companies at a time
                 $companies_to_update->chunk(100, function ($companies) use ($companies_to_sync){
@@ -72,7 +72,7 @@ class Kernel extends ConsoleKernel
                     }
                 });
 
-            })->name('update_company_record')->everyMinute()->withoutOverlapping();
+            })->name('update_company_record')->everyMinute()->between('7:00', '17:00')->withoutOverlapping();
 
         } catch (\Exception $e) {
 

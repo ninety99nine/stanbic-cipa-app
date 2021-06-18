@@ -4,7 +4,7 @@
 
         <div class="flex justify-between border-b pb-4">
             <div class="flex items-center">
-                <span class="text-2xl items-center font-bold text-gray-500">Ownership</span>
+                <span class="text-2xl items-center font-bold text-gray-500">Shareholders</span>
             </div>
         </div>
 
@@ -13,7 +13,7 @@
             <!-- Search Bar -->
             <div class="flex items-start">
 
-                <el-input v-model="searchWord" placeholder="Search shareholders or directors" prefix-icon="el-icon-search"
+                <el-input v-model="searchWord" placeholder="Search shareholders" prefix-icon="el-icon-search"
                           size="small" class="mr-2" clearable @keyup.enter="fetchOwnershipBundles()" @clear="fetchOwnershipBundles()">
                     <template #prepend>
                         <el-select v-model="searchType" placeholder="Select" :style="{ width: '140px' }" @change="triggerSearch(searchWord, searchType)">
@@ -50,7 +50,7 @@
                                 <el-dropdown-item icon="el-icon-refresh-right" @click="fetchOwnershipBundles()">Refresh</el-dropdown-item>
                                 <el-dropdown-item divided @click="showSortBy = true">Sort By</el-dropdown-item>
                                 <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
-                                <el-dropdown-item icon="el-icon-download" divided>
+                                <el-dropdown-item v-if="$page.props.can.includes('export shareholders')" icon="el-icon-download" divided>
                                     <a :href="exportUrl">Export to Excel</a>
                                 </el-dropdown-item>
                             </el-dropdown-menu>
@@ -319,7 +319,7 @@
                     <template #default="scope">
                         <span :style="{ wordBreak: 'break-word' }">
                             <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.company_name)">{{ scope.row.company_name }}</span>
-                            <a v-if="scope.row.company_uin" :href="route('companies', {search: scope.row.company_uin, search_type: 'internal'})" class="text-blue-800 text-xs underline cursor-pointer ml-2">
+                            <a v-if="scope.row.company_uin" :href="route('companies', {search: scope.row.company_uin})" class="text-blue-800 text-xs underline cursor-pointer ml-2">
                                 {{ scope.row.company_uin }}
                             </a>
                         </span>
@@ -1044,7 +1044,7 @@
                 }
             },
             exportUrl(){
-                return route('ownership-bundles-export') + this.urlQueryParamsAsString;
+                return route('shareholders-export') + this.urlQueryParamsAsString;
             }
         },
         methods:{
@@ -1117,7 +1117,7 @@
 
                 var options = { only: ['ownership_bundles'], preserveState: true, preserveScroll: true, replace: true };
 
-                var response = this.$inertia.get(route('ownership-bundles'), this.urlQueryParamsAsObject, options);
+                var response = this.$inertia.get(route('shareholders'), this.urlQueryParamsAsObject, options);
 
                 Inertia.on('success', (event) => {
                     this.setTableData(event.detail.page.props.ownership_bundles.data);

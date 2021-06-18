@@ -5,7 +5,9 @@ namespace App\Traits;
 use App\Exports\CompaniesExport;
 use App\Imports\CompaniesImport;
 use Illuminate\Support\Facades\DB;
+use \Spatie\Permission\Models\Role;
 use Maatwebsite\Excel\Facades\Excel;
+use \Spatie\Permission\Models\Permission;
 use Illuminate\Database\Eloquent\Builder;
 
 trait UserTraits
@@ -32,7 +34,7 @@ trait UserTraits
             }else{
 
                 //  Get the users
-                $users = (new \App\Models\User);
+                $users = (new \App\Models\User)->with('roles.permissions');
 
             }
 
@@ -80,26 +82,6 @@ trait UserTraits
         //  Set the search term e.g "Katlego Warona"
         $search_term = $data['search'] ?? null;
 
-        //  Set the search term e.g "Katlego Warona"
-        $search_type = $data['search_type'] ?? 'all';
-
-        //  Filter admin users
-        if( $search_type == 'admin' ){
-
-            $users = $users->adminUsers();
-
-        //  Filter basic users
-        }elseif( $search_type == 'basic' ){
-
-            $users = $users->basicUsers();
-
-        //  Filter special users
-        }elseif( $search_type == 'special' ){
-
-            $users = $users->specialUsers();
-
-        }
-
         return $users->search($search_term);
 
     }
@@ -143,11 +125,23 @@ trait UserTraits
              **************************/
 
             $filterByUserRoles = collect($statuses)->filter(function($status){
-                return in_array($status, ['admin', 'basic', 'special']);
+                return in_array($status, collect(Role::pluck('name'))->toArray());
             })->toArray();
 
             if( count($filterByUserRoles) ){
                 $users = $users->userRoles($filterByUserRoles);
+            }
+
+            /*********************************
+             *  FILTER BY USER PERMISSIONS   *
+             ********************************/
+
+            $filterByUserPermissions = collect($statuses)->filter(function($status){
+                return in_array($status, collect(Permission::pluck('name'))->toArray());
+            })->toArray();
+
+            if( count($filterByUserPermissions) ){
+                $users = $users->userPermissions($filterByUserPermissions);
             }
 
         }
@@ -184,90 +178,6 @@ trait UserTraits
         //  By default sort by the "updated at" date
         return $users->latest('updated_at');
 
-    }
-
-    /**
-     *  This method exports a list of users
-     */
-    public function exportResources($data = [])
-    {
-        try {
-
-            //  Get the users
-            $users = $this->getResources($data, null, null);
-
-            //  Extract the Request Object data (CommanTraits)
-            $data = $this->extractRequestData($data);
-
-            if( isset($data['export_type']) && !empty($data['export_type']) ){
-
-                //  Set the "export_type"
-                $export_type = $data['export_type'];
-
-            }else{
-
-                //  Set the "export_type"
-                $export_type = 'csv';
-
-            }
-
-            //  Set the file name e.g "ownership.csv"
-            $file_name = 'ownership.'.$export_type;
-
-            //  Download the excel data
-            return Excel::download(new CompaniesExport($users), $file_name);
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method imports a list of users
-     */
-    public function importResources($data = [])
-    {
-        try {
-
-            Excel::import(new CompaniesImport, request()->file('excelFile'));
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
-    }
-
-    /**
-     *  This method returns a single user
-     */
-    public function getResource($id)
-    {
-        try {
-
-            //  Get the resource
-            $user = \App\Models\User::where('id', $id)->first() ?? null;
-
-            //  If exists
-            if ($user) {
-
-                //  Return user
-                return $user;
-
-            } else {
-
-                //  Return "Not Found" Error
-                return help_resource_not_found();
-
-            }
-
-        } catch (\Exception $e) {
-
-            throw($e);
-
-        }
     }
 
 }

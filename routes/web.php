@@ -56,25 +56,43 @@ Route::prefix('companies')->namespace('App\Http\Controllers')->middleware(['auth
 });
 
 //  Ownership Bundles Resource Routes
-Route::prefix('ownership')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::prefix('shareholders')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
 
-    Route::get('/', 'OwnershipBundleController@getOwnershipBundles')->name('ownership-bundles');
+    Route::get('/', 'OwnershipBundleController@getOwnershipBundles')->name('shareholders')->middleware('can:view shareholders');
 
     // Route for export/download tabledata to .csv, .xls or .xlsx
-    Route::get('/export', 'OwnershipBundleController@exportOwnershipBundles')->name('ownership-bundles-export');
+    Route::get('/export', 'OwnershipBundleController@exportOwnershipBundles')->name('shareholders-export')->middleware('can:export shareholders');
 
 });
 
 //  Users Resource Routes
 Route::prefix('users')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
 
-    Route::get('/', 'UserController@getUsers')->name('users');
+    Route::get('/', 'UserController@getUsers')->name('users')->middleware('can:view users');
+    Route::post('/', 'UserController@createUser')->name('user-create')->middleware('can:create users');
+
+    //  Single user resources    /users/{user_id}   name => user-*
+    Route::prefix('/{user_id}')->name('user-')->group(function () {
+
+        Route::put('/', 'UserController@updateUser')->name('update')->where('user_id', '[0-9]+')->middleware('can:update users');
+        Route::delete('/', 'UserController@deleteUser')->name('delete')->where('user_id', '[0-9]+')->middleware('can:delete users');
+
+    });
 
 });
 
-// Route for view/blade file.
-Route::get('importExportView', [ExcelController::class, 'importExportView'])->name('importExportView');
-// Route for export/download tabledata to .csv, .xls or .xlsx
-Route::get('exportExcel/{type}', [ExcelController::class, 'exportExcel'])->name('exportExcel');
-// Route for import excel data to database.
-Route::post('importExcel', [ExcelController::class, 'importExcel'])->name('importExcel');
+//  Roles Resource Routes
+Route::prefix('roles')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', 'RoleController@getRoles')->name('roles')->middleware('can:view roles');
+    Route::post('/', 'RoleController@createRole')->name('role-create')->middleware('can:create roles');
+
+    //  Single role resources    /roles/{role_id}   name => role-*
+    Route::prefix('/{role_id}')->name('role-')->group(function () {
+
+        Route::put('/', 'RoleController@updateRole')->name('update')->where('role_id', '[0-9]+')->middleware('can:update roles');
+        Route::delete('/', 'RoleController@deleteRole')->name('delete')->where('role_id', '[0-9]+')->middleware('can:delete roles');
+
+    });
+
+});

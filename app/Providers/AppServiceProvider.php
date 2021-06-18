@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use Inertia\Inertia;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -31,6 +33,19 @@ class AppServiceProvider extends ServiceProvider
             'individual' => 'App\Models\Individual',
             'organisation' => 'App\Models\Organisation'
         ]);
+
+        Inertia::share([
+            'errors' => function () {
+                return Session::get('errors')
+                     ? Session::get('errors')->getBag('default')->getMessages() : (object) [];
+            },
+        ]);
+
+        Inertia::share('flash', function () {
+            return [
+                'message' => Session::get('message'),
+            ];
+        });
 
         /*
             To Help With Our HATEOAS (HAL) API - I include the following as suggested by Laravel

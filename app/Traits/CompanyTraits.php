@@ -294,21 +294,7 @@ trait CompanyTraits
         //  If we need to search for specific companies
         if ( isset($data['search']) && !empty($data['search']) ) {
 
-            if( isset($data['search_type']) && !empty($data['search_type']) ){
-
-                //  Searching within application database
-                if( $data['search_type'] == 'internal' ){
-
-                    $companies = $this->filterResourcesBySearch($data, $companies);
-
-                //  Searching outside application database (Searching within CIPA)
-                }elseif( $data['search_type'] == 'external' ){
-
-                    $companies = $this->requestCipaSearch($data);
-
-                }
-
-            }
+            $companies = $this->filterResourcesBySearch($data, $companies);
 
         }elseif ( isset($data['status']) && !empty($data['status']) ) {
 
@@ -1736,7 +1722,6 @@ trait CompanyTraits
      */
     public function createOrUpdateResourceEntity($entity_template, $force_as_company = false)
     {
-
         $name = $entity_template['name'];
 
         //  If we have a UIN or the Company name is the same or we force as a company, then this is a Company
@@ -1766,16 +1751,67 @@ trait CompanyTraits
 
             }
 
-            //  Create / Update the Company
-            $entity = Company::updateOrCreate(
+            /**
+             *  Note: The following technique causes an issue with some records because
+             *  of the unique uin and name fields that the Company model is using. This
+             *  causes an error as follows:
+             *
+             *  SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry
+             *  'Business Precisions Services Proprietary Limited' for key
+             *  'companies_name_unique'
+             *
+             *  The method that caused this issue is as follows:
+             *
+             *  //  Create / Update the Company
+             *  $entity = Company::updateOrCreate(
+             *
+             *      //  Where uin = $uin or name = $name
+             *      $identifiers,
+             *
+             *      //  Update or Create a record with this Array of key/values
+             *      $entity_template
+             *
+             *  );
+             *
+             *  I noticed that the other parts of the script that use the updateOrCreate()
+             *  work just fine as long as the target Model does not does have a field
+             *  using the unique index. For the Company Model however, we have the uin
+             *  and name fields using the unique index. We will use the old fashioned
+             *  check if a Model exists, then update or create a new record
+             */
 
-                //  Where uin = $uin or name = $name
-                $identifiers,
+            $entity = (new Company);
 
-                //  Update or Create a record with this Array of key/values
-                $entity_template
+            if( !empty($uin)  ){
 
-            );
+                /**
+                 *  Search for any company that matches the given uin,
+                 *  otherwise search for any company that matches the
+                 *  given name
+                 */
+                $entity = Company::where('uin', $uin)->orWhere('name', $name)->first();
+
+            }else{
+
+                /**
+                 *  Search for any company that matches the given name
+                 */
+                $entity = Company::where('name', $name)->first();
+
+            }
+
+            //  If we have a matching company
+            if( isset($entity) && !empty($entity) ){
+
+                //  Update the Company
+                $entity->update($entity_template);
+
+            }else{
+
+                //  Create the Company
+                $entity = Company::create($entity_template);
+
+            }
 
         //  If we don't have a UIN, then this is a Business
         }else{
@@ -2002,7 +2038,7 @@ trait CompanyTraits
                 $cipaCompany = $cipaCompany->response->BursCompanyView;
 
                 $template = [
-                    'details' => $cipaCompany,
+                    //  'details' => $cipaCompany,
                     'cipa_updated_at' => \Carbon\Carbon::now()
                 ];
 

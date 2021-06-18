@@ -22,25 +22,31 @@
                                 </jet-nav-link>
                             </div>
 
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                                <jet-nav-link :href="route('ownership-bundles')" :active="route().current('ownership-bundles')">
-                                    Directors / Shareholders
+                            <div v-if="$page.props.can.includes('view shareholders')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                <jet-nav-link :href="route('shareholders')" :active="route().current('shareholders')">
+                                    Shareholders
                                 </jet-nav-link>
                             </div>
 
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                            <div v-if="$page.props.can.includes('view users')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                                 <jet-nav-link :href="route('users')" :active="route().current('users')">
                                     Users
                                 </jet-nav-link>
                             </div>
 
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                            <div v-if="$page.props.can.includes('view roles')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                <jet-nav-link :href="route('roles')" :active="route().current('roles')">
+                                    Roles
+                                </jet-nav-link>
+                            </div>
+
+                            <div v-if="$page.props.can.includes('view monitor')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                                 <jet-nav-link :href="route('dashboard')" :active="route().current('dashboard')">
                                     Monitor
                                 </jet-nav-link>
                             </div>
 
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                            <div v-if="$page.props.can.includes('view reports')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                                 <jet-nav-link :href="route('dashboard')" :active="route().current('dashboard')">
                                     Reports
                                 </jet-nav-link>
