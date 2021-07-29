@@ -63,6 +63,8 @@ class Kernel extends ConsoleKernel
                     //  Foreach company we retrieved from the query
                     foreach ($companies as $company) {
 
+                        //  Log::info('Company UIN: '.$company->uin);
+
                         //  Set the companies to sync
                         $company->companies_to_sync = $companies_to_sync;
 

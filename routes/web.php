@@ -65,6 +65,16 @@ Route::prefix('shareholders')->namespace('App\Http\Controllers')->middleware(['a
 
 });
 
+//  Ownership Bundles Resource Routes
+Route::prefix('directors')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', 'DirectorController@getDirectors')->name('directors')->middleware('can:view directors');
+
+    // Route for export/download tabledata to .csv, .xls or .xlsx
+    Route::get('/export', 'DirectorController@exportDirectors')->name('directors-export')->middleware('can:export directors');
+
+});
+
 //  Users Resource Routes
 Route::prefix('users')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
 
@@ -94,5 +104,195 @@ Route::prefix('roles')->namespace('App\Http\Controllers')->middleware(['auth:san
         Route::delete('/', 'RoleController@deleteRole')->name('delete')->where('role_id', '[0-9]+')->middleware('can:delete roles');
 
     });
+
+});
+
+//  Reports Resource Routes
+Route::prefix('reports')->namespace('App\Http\Controllers')->middleware(['auth:sanctum', 'verified'])->group(function () {
+
+    Route::get('/', function(){
+
+        //  Return a list of companies
+        $companies = \App\Models\Company::markedAsClient()->get();
+        $total_companies = collect($companies)->count();
+
+        //  Return a list of ownership bundles
+        $ownership_bundles = \App\Models\OwnershipBundle::all();
+        $total_ownership_bundles = collect($ownership_bundles)->count();
+
+        //  Company Status As Percentage
+        $company_status_by_percentage = collect($companies)->groupBy('company_status')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Exempt Status As Percentage
+        $exempt_status_by_percentage = collect($companies)->groupBy('exempt.name')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Foreign Status As Percentage
+        $foreign_status_by_percentage = collect($companies)->groupBy('foreign_company.name')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Company Type As Percentage
+        $company_type_by_percentage = collect($companies)->groupBy('company_type')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Company Sub Type As Percentage
+        $company_sub_type_by_percentage = collect($companies)->groupBy('company_sub_type')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Business Sector As Percentage
+        $business_sector_by_percentage = collect($companies)->groupBy('business_sector')->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name ? $name : 'Not specified',
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values();
+
+        //  Old Company Number As Percentage
+        $old_company_number_by_percentage = collect($companies)->groupBy(function ($item, $key) {
+            return !empty($item['old_company_number']) ? 'Specified': 'Not Specified';
+        })->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name,
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values()->toArray();
+
+        //  Dissolution Date As Percentage
+        $dissolution_date_by_percentage = collect($companies)->groupBy(function ($item, $key) {
+            return !empty($item['dissolution_date']) ? 'Specified': 'Not Specified';
+        })->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name,
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values()->toArray();
+
+        //  Re-Registration Date As Percentage
+        $re_registration_date_by_percentage = collect($companies)->groupBy(function ($item, $key) {
+            return !empty($item['re_registration_date']) ? 'Specified': 'Not Specified';
+        })->map(function($collection, $name) use ($total_companies){
+
+            $curr_total = collect($collection)->count();
+
+            return collect([
+                'name' => $name,
+                'total' => $curr_total,
+                'percentage' => ($curr_total / $total_companies) * 100
+            ]);
+
+        })->values()->toArray();
+
+        //  Incorporation Date
+        $incorporation_dates = collect(collect($companies)->groupBy(function ($item, $key) {
+
+            //  Group by years
+            return substr($item['incorporation_date'], -4);
+
+        })->map(function($collection_by_year, $year) use ($total_companies){
+
+            $curr_total_by_year = collect($collection_by_year)->count();
+
+            $drill_down = collect(collect($collection_by_year)->groupBy(function ($item, $key) {
+
+                //  Group by months
+                return substr($item['incorporation_date'], 3, 3);
+
+            })->map(function($collection_grouped_by_month, $month) use ($curr_total_by_year, $year){
+
+                $curr_total_group_by_month = collect($collection_grouped_by_month)->count();
+
+                return collect([
+                    $month, ($curr_total_group_by_month / $curr_total_by_year * 100)
+                ]);
+
+            })->toArray())->values();
+
+            return collect([
+                'id' => $year ? $year : 'Not specified',
+                'name' => $year ? $year : 'Not specified',
+                'data' => $drill_down,
+                'count' => $curr_total_by_year,
+                'percentage' => ($curr_total_by_year / $total_companies) * 100
+            ]);
+
+        })->sortBy('name')->toArray())->values();
+
+        return Inertia::render('Reports/List', [
+            'company_status_by_percentage' => $company_status_by_percentage,
+            'exempt_status_by_percentage' => $exempt_status_by_percentage,
+            'foreign_status_by_percentage' => $foreign_status_by_percentage,
+            'company_type_by_percentage' => $company_type_by_percentage,
+            'company_sub_type_by_percentage' => $company_sub_type_by_percentage,
+            'business_sector_by_percentage' => $business_sector_by_percentage,
+            'old_company_number_by_percentage' => $old_company_number_by_percentage,
+            'dissolution_date_by_percentage' => $dissolution_date_by_percentage,
+            're_registration_date_by_percentage' => $re_registration_date_by_percentage,
+            'incorporation_dates' => $incorporation_dates
+        ]);
+
+    })->name('reports'); //->middleware('can:view reports');
+
+    //  Route::get('/', 'ReportController@getReports')->name('reports')->middleware('can:view reports');
 
 });

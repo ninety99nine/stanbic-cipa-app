@@ -475,13 +475,13 @@ class OwnershipBundle extends Model
     {
         if( $start_date ){
             $query = $query->whereHas('director', function (Builder $query) use ($start_date) {
-                $query->whereDate('appointment_date', '>=', $start_date);
+                $query->appointmentDate($start_date, null);
             });
         }
 
         if( $end_date ){
             $query = $query->whereHas('director', function (Builder $query) use ($end_date) {
-                $query->whereDate('appointment_date', '<=', $end_date);
+                $query->appointmentDate(null, $end_date);
             });
         }
 
@@ -496,13 +496,13 @@ class OwnershipBundle extends Model
     {
         if( $start_date ){
             $query = $query->whereHas('director', function (Builder $query) use ($start_date) {
-                $query->whereDate('ceased_date', '>=', $start_date);
+                $query->ceasedDate($start_date, null);
             });
         }
 
         if( $end_date ){
             $query = $query->whereHas('director', function (Builder $query) use ($end_date) {
-                $query->whereDate('ceased_date', '<=', $end_date);
+                $query->ceasedDate(null, $end_date);
             });
         }
 

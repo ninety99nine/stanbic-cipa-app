@@ -28,6 +28,12 @@
                                 </jet-nav-link>
                             </div>
 
+                            <div v-if="$page.props.can.includes('view directors')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                <jet-nav-link :href="route('directors')" :active="route().current('directors')">
+                                    Directors
+                                </jet-nav-link>
+                            </div>
+
                             <div v-if="$page.props.can.includes('view users')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
                                 <jet-nav-link :href="route('users')" :active="route().current('users')">
                                     Users
@@ -47,7 +53,7 @@
                             </div>
 
                             <div v-if="$page.props.can.includes('view reports')" class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                                <jet-nav-link :href="route('dashboard')" :active="route().current('dashboard')">
+                                <jet-nav-link :href="route('reports')" :active="route().current('reports')">
                                     Reports
                                 </jet-nav-link>
                             </div>

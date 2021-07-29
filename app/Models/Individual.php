@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DB;
 use App\Traits\CommonTraits;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,9 +34,11 @@ class Individual extends Model
 
     public function scopeSearch($query, $searchTerm)
     {
-        return $query->where('first_name', $searchTerm)
-                     ->orWhere('middle_names', 'like', '%'.$searchTerm.'%')
-                     ->orWhere('last_name', 'like', '%'.$searchTerm.'%');
+        //  Remove spaces from the search term
+        $searchTerm = str_replace(' ', '', $searchTerm);
+
+        return $query->where(DB::raw("CONCAT(`first_name`, `last_name`)"), 'LIKE', "%".$searchTerm."%")
+                     ->orWhere(DB::raw("CONCAT(`first_name`, `middle_names`, `last_name`)"), 'LIKE', "%".$searchTerm."%");
     }
 
     public function scopeWithoutResidentialAddress($query)

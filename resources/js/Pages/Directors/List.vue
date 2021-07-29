@@ -13,7 +13,7 @@
             <!-- Search Bar -->
             <div class="flex items-start">
 
-                <el-input v-model="searchWord" placeholder="Search shareholders" prefix-icon="el-icon-search"
+                <el-input v-model="searchWord" placeholder="Search directors" prefix-icon="el-icon-search"
                           size="small" class="mr-2" clearable @keyup.enter="handleFilter()" @clear="handleFilter()">
                     <template #prepend>
                         <el-select v-model="searchType" placeholder="Select" :style="{ width: '140px' }" @change="triggerSearch(searchWord, searchType)">
@@ -50,7 +50,7 @@
                                 <el-dropdown-item icon="el-icon-refresh-right" @click="handleFilter()">Refresh</el-dropdown-item>
                                 <el-dropdown-item divided @click="showSortBy = true">Sort By</el-dropdown-item>
                                 <el-dropdown-item @click="toggleSelectedColumns()">Select Columns</el-dropdown-item>
-                                <el-dropdown-item v-if="$page.props.can.includes('export shareholders')" icon="el-icon-download" divided>
+                                <el-dropdown-item v-if="$page.props.can.includes('export directors')" icon="el-icon-download" divided>
                                     <a :href="exportUrl">Export to Excel</a>
                                 </el-dropdown-item>
                             </el-dropdown-menu>
@@ -75,7 +75,7 @@
 
                 <div class="grid grid-cols-4 gap-4 my-5">
 
-                    <div v-if="filterByCustomShareholders">
+                    <div v-if="filterByCustomDirectorShares">
                         <span class="block py-2 mb-2">Share Allocation</span>
                         <div class="flex items-center">
                             <span class="text-xs mr-4">From</span>
@@ -85,87 +85,87 @@
                         </div>
                     </div>
 
-                    <div v-if="filterByShareholderToSpecificNumber">
+                    <div v-if="filterByDirectorToSpecificNumberOfCompanies">
 
-                        <span class="block py-2 mb-2">Has number of shares</span>
+                        <span class="block py-2 mb-2">Director to number of companies</span>
 
                         <div class="d-flex">
                             <span class="text-xs mr-2">Type:</span>
-                            <el-select v-model="filterSettings.source_of_shares_type" size="mini" class="mb-2" placeholder="Select" @change="handleFilter()">
+                            <el-select v-model="filterSettings.director_to_specific_type" size="mini" class="mb-2" placeholder="Select" @change="handleFilter()">
                                 <el-option v-for="option in ['Minimum', 'Maximum', 'Exact', 'Range']" :key="option" :label="option" :value="option"></el-option>
                             </el-select>
                         </div>
 
-                        <template v-if="filterSettings.source_of_shares_type == 'Minimum'">
+                        <template v-if="filterSettings.director_to_specific_type == 'Minimum'">
                             <div class="flex items-center">
                             <span class="text-xs mr-4">Mimumim</span>
-                                <el-input-number size="mini" v-model="filterSettings.min_source_of_shares" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.min_companies" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.source_of_shares_type == 'Maximum'">
+                        <template v-if="filterSettings.director_to_specific_type == 'Maximum'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">Maximum</span>
-                                <el-input-number size="mini" v-model="filterSettings.max_source_of_shares" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.max_companies" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.source_of_shares_type == 'Exact'">
+                        <template v-if="filterSettings.director_to_specific_type == 'Exact'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">Exactly</span>
-                                <el-input-number size="mini" v-model="filterSettings.exact_source_of_shares" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.exact_companies" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.source_of_shares_type == 'Range'">
+                        <template v-if="filterSettings.director_to_specific_type == 'Range'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">From</span>
-                                <el-input-number size="mini" v-model="filterSettings.min_source_of_shares" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.min_companies" :min="1" clearable @change="handleFilter()"></el-input-number>
                                 <span class="text-xs mx-4">To</span>
-                                <el-input-number size="mini" v-model="filterSettings.max_source_of_shares" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.max_companies" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
                     </div>
 
-                    <div v-if="filterByHasSpecificShareholders">
+                    <div v-if="filterByCompanyWithOneOrManyDirectors">
 
-                        <span class="block py-2 mb-2">Has number of shareholders</span>
+                        <span class="block py-2 mb-2">Has number of directors</span>
 
                         <div class="d-flex">
                             <span class="text-xs mr-2">Type:</span>
-                            <el-select v-model="filterSettings.specific_shareholders_type" size="mini" class="mb-2" placeholder="Select" @change="handleFilter()">
+                            <el-select v-model="filterSettings.specific_directors_type" size="mini" class="mb-2" placeholder="Select" @change="handleFilter()">
                                 <el-option v-for="option in ['Minimum', 'Maximum', 'Exact', 'Range']" :key="option" :label="option" :value="option"></el-option>
                             </el-select>
                         </div>
 
-                        <template v-if="filterSettings.specific_shareholders_type == 'Minimum'">
+                        <template v-if="filterSettings.specific_directors_type == 'Minimum'">
                             <div class="flex items-center">
                             <span class="text-xs mr-4">Mimumim</span>
-                                <el-input-number size="mini" v-model="filterSettings.min_shareholders" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.min_directors" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.specific_shareholders_type == 'Maximum'">
+                        <template v-if="filterSettings.specific_directors_type == 'Maximum'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">Maximum</span>
-                                <el-input-number size="mini" v-model="filterSettings.max_shareholders" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.max_directors" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.specific_shareholders_type == 'Exact'">
+                        <template v-if="filterSettings.specific_directors_type == 'Exact'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">Exactly</span>
-                                <el-input-number size="mini" v-model="filterSettings.equal_shareholders" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.equal_directors" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
-                        <template v-if="filterSettings.specific_shareholders_type == 'Range'">
+                        <template v-if="filterSettings.specific_directors_type == 'Range'">
                             <div class="flex items-center">
                                 <span class="text-xs mr-4">From</span>
-                                <el-input-number size="mini" v-model="filterSettings.min_shareholders" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.min_directors" :min="1" clearable @change="handleFilter()"></el-input-number>
                                 <span class="text-xs mx-4">To</span>
-                                <el-input-number size="mini" v-model="filterSettings.max_shareholders" :min="1" clearable @change="handleFilter()"></el-input-number>
+                                <el-input-number size="mini" v-model="filterSettings.max_directors" :min="1" clearable @change="handleFilter()"></el-input-number>
                             </div>
                         </template>
 
@@ -174,18 +174,18 @@
                     <div v-if="filterByShareholderAppointedDate">
                         <span class="block py-2 mb-2">Shareholder appointment date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterSettings.shareholder_appointed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="handleFilter()"></el-date-picker>
+                            <el-date-picker v-model="filterSettings.director_appointed_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="handleFilter()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterSettings.shareholder_appointed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="handleFilter()"></el-date-picker>
+                            <el-date-picker v-model="filterSettings.director_appointed_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="handleFilter()"></el-date-picker>
                         </div>
                     </div>
 
                     <div v-if="filterByShareholderCeasedDate">
                         <span class="block py-2 mb-2">Shareholder ceased date</span>
                         <div class="flex items-center">
-                            <el-date-picker v-model="filterSettings.shareholder_ceased_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="handleFilter()"></el-date-picker>
+                            <el-date-picker v-model="filterSettings.director_ceased_start_date" type="date" size="small" format="DD MMM YYYY" placeholder="Start date" @change="handleFilter()"></el-date-picker>
                             <span>-</span>
-                            <el-date-picker v-model="filterSettings.shareholder_ceased_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="handleFilter()"></el-date-picker>
+                            <el-date-picker v-model="filterSettings.director_ceased_end_date" type="date" size="small" format="DD MMM YYYY" placeholder="End date" @change="handleFilter()"></el-date-picker>
                         </div>
                     </div>
 
@@ -287,8 +287,8 @@
             <div class="overflow-auto">
                 <div class="float-right font-bold text-gray-500 text-sm">
                     <span class="mr-2">Found</span>
-                    <span class="mr-2 text-2xl text-green-500">{{ ownership_bundles.total }}</span>
-                    <span>{{ ownership_bundles.total == 1 ? 'result' : 'results' }}</span>
+                    <span class="mr-2 text-2xl text-green-500">{{ directors.total }}</span>
+                    <span>{{ directors.total == 1 ? 'result' : 'results' }}</span>
                 </div>
             </div>
 
@@ -301,7 +301,7 @@
 
                 <el-table-column v-if="selectedColumns.includes('compliant indicator')" min-width="40" fixed>
                     <template #default="scope">
-                        <el-popover v-if="scope.row.is_imported_from_cipa" placement="top-start" :title="scope.row.is_compliant.name" :width="190" trigger="hover">
+                        <el-popover placement="top-start" :title="scope.row.is_compliant.name" :width="190" trigger="hover">
                             <template #reference>
                                 <i v-if="scope.row.is_compliant.status" class="el-icon-circle-check text-green-400"></i>
                                 <i v-else class="el-icon-circle-close text-red-400"></i>
@@ -328,110 +328,49 @@
 
                 <el-table-column v-if="selectedColumns.includes('company status')" min-width="100" prop="company_status" label="Status" fixed>
                     <template #default="scope">
-                        <span v-if="scope.row.is_imported_from_cipa">
-                            <span class="capitalize">
-                                <el-tag v-if="scope.row.company_status == 'Registered'" size="small" type="success">{{ scope.row.company_status }}</el-tag>
-                                <el-tag v-else size="small" type="danger">{{ scope.row.company_status }}</el-tag>
-                            </span>
+                        <span class="capitalize">
+                            <el-tag v-if="scope.row.company_status == 'Registered'" size="small" type="success">{{ scope.row.company_status }}</el-tag>
+                            <el-tag v-else size="small" type="danger">{{ scope.row.company_status }}</el-tag>
                         </span>
                     </template>
                 </el-table-column>
 
-                <el-table-column v-if="selectedColumns.includes('shareholder')" min-width="300" prop="name" label="Shareholder" fixed>
+                <el-table-column v-if="selectedColumns.includes('director')" min-width="300" prop="name" label="Director" fixed>
                     <template #default="scope">
                         <div :style="{ wordBreak: 'break-word' }">
                             <span class="text-blue-500 text-lg mr-2">
-                                <i v-if="scope.row.owner_type == 'individual'" class="el-icon-user"></i>
-                                <i v-else-if="scope.row.owner_type == 'company'" class="el-icon-school"></i>
-                                <i v-else-if="scope.row.owner_type == 'business'" class="el-icon-suitcase"></i>
+                                <i class="el-icon-user"></i>
                             </span>
-                            <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.shareholder_name)">{{ scope.row.shareholder_name }}</span>
-                            <el-tag v-if="scope.row.total_shareholder_occurances > 1" size="mini" type="warning" class="ml-2">x{{ scope.row.total_shareholder_occurances }} duplicates</el-tag>
-                            <el-tag v-if="scope.row.is_shareholder_to_self.status" size="mini" type="warning" class="ml-2">shareholder to itself</el-tag>
+                            <span class="no-underline cursor-pointer hover:underline" @click="triggerSearch(scope.row.full_name)">{{ scope.row.full_name }}</span>
                         </div>
                     </template>
                 </el-table-column>
 
-                <el-table-column v-if="selectedColumns.includes('% of shares')" min-width="100" prop="percentage_of_shares" label="% of shares" align="center">
+                <el-table-column v-if="selectedColumns.includes('appointment date')" min-width="210" prop="appointment_date" label="Appointed date">
                     <template #default="scope">
-                        <el-popover placement="top" :width="180" trigger="hover">
-                            <template #reference>
-                                <div>
-                                    <span class="font-bold text-2xl text-blue-400">
-                                        <span v-if="scope.row.percentage_of_shares.rounded == 100 && (scope.row.percentage_of_shares.number_of_shares < scope.row.percentage_of_shares.total_shares)">~</span>
-                                        <span>{{ scope.row.percentage_of_shares.rounded }}</span>
-                                    </span>
-                                    <span class="text-xs text-blue-400">%</span>
-                                </div>
-                            </template>
-                            <span class="block text-center font-bold text-xl text-blue-400">{{ scope.row.percentage_of_shares.original }}%</span>
-                        </el-popover>
+                        <span>{{ scope.row.appointment_date }}</span>
                     </template>
                 </el-table-column>
 
-                <el-table-column v-if="selectedColumns.includes('number of shares')" min-width="120" prop="number_of_shares" label="# of shares" align="center"></el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('total shares')" min-width="120" prop="total_shares" label="Total shares" align="center"></el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('nominee')" min-width="100" prop="nominee" label="Nominee" align="center"></el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('director')" min-width="100" prop="is_director" label="Director" align="center">
+                <el-table-column v-if="selectedColumns.includes('ceased date')" min-width="200" prop="ceased_date" label="Ceased date">
                     <template #default="scope">
-                        <span>{{ scope.row.is_director ? 'Yes' : 'No' }}</span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('shareholder appointment date')" min-width="210" prop="shareholder_appointment_date" label="Shareholder appointed date">
-                    <template #default="scope">
-                        <span v-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.shareholder_appointment_date }}</span>
-                        </span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('shareholder ceased date')" min-width="200" prop="shareholder_ceased_date" label="Shareholder ceased date">
-                    <template #default="scope">
-                        <span v-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.shareholder_ceased_date }}</span>
-                        </span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('director appointment date')" min-width="190" prop="director_appointment_date" label="Director appointed date">
-                    <template #default="scope">
-                        <span v-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.director_appointment_date }}</span>
-                        </span>
-                    </template>
-                </el-table-column>
-
-                <el-table-column v-if="selectedColumns.includes('director ceased date')" min-width="180" prop="director_ceased_date" label="Director ceased date">
-                    <template #default="scope">
-                        <span v-if="scope.row.is_imported_from_cipa">
-                            <span>{{ scope.row.director_ceased_date }}</span>
-                        </span>
+                        <span>{{ scope.row.appointment_date }}</span>
                     </template>
                 </el-table-column>
 
                 <el-table-column v-if="selectedColumns.includes('residential addresses')" min-width="250" prop="residential_addresses" label="Residential address">
                     <template #default="scope">
-                        <span v-if="scope.row.owner_type == 'individual'" :style="{ wordBreak: 'break-word' }">
-                            <span v-if="scope.row.residential_addresses">
-                                {{ scope.row.residential_addresses }}
-                            </span>
+                        <span v-if="scope.row.residential_addresses" :style="{ wordBreak: 'break-word' }">
+                            {{ scope.row.residential_addresses }}
                         </span>
-                        <span v-else>N/A</span>
                     </template>
                 </el-table-column>
 
                 <el-table-column v-if="selectedColumns.includes('postal addresses')" min-width="250" prop="postal_addresses" label="Postal address">
                     <template #default="scope">
-                        <span v-if="scope.row.owner_type == 'individual'" :style="{ wordBreak: 'break-word' }">
-                            <span v-if="scope.row.postal_addresses">
-                                {{ scope.row.postal_addresses }}
-                            </span>
+                        <span v-if="scope.row.postal_addresses" :style="{ wordBreak: 'break-word' }">
+                            {{ scope.row.postal_addresses }}
                         </span>
-                        <span v-else>N/A</span>
                     </template>
                 </el-table-column>
 
@@ -440,7 +379,7 @@
             <!-- Pagination -->
             <div class="overflow-auto py-4">
                 <el-pagination class="float-right" layout="sizes, prev, pager, next" :page-size="pageSize" :page-sizes="[5, 10, 15, 20]"
-                            :total="ownership_bundles.total" :page-count="ownership_bundles.total" :current-page="ownership_bundles.current_page"
+                            :total="directors.total" :page-count="directors.total" :current-page="directors.current_page"
                             :pager-count="11" background @size-change="changePageSize" @current-change="changePage">
                 </el-pagination>
             </div>
@@ -462,7 +401,7 @@
         // Use Dashboard Layout
         layout: Dashboard,
         props: {
-            ownership_bundles: {
+            directors: {
                 type: Object,
                 default: null
             },
@@ -527,23 +466,6 @@
                         ]
                     },
                     {
-                        label: 'Shareholder Type',
-                        options: [
-                            {
-                                name: 'Individuals',
-                                value: 'individual'
-                            },
-                            {
-                                name: 'Companies',
-                                value: 'company'
-                            },
-                            {
-                                name: 'Organisations',
-                                value: 'organisation'
-                            }
-                        ]
-                    },
-                    {
                         label: 'Director Roles',
                         options: [
                             {
@@ -553,13 +475,44 @@
                             {
                                 name: 'Former Director',
                                 value: 'former director'
-                            },
-                            {
-                                name: 'Not Director',
-                                value: 'not director'
                             }
                         ]
                     },
+                    {
+                        label: 'Director to one or many companies',
+                        options: [
+                            {
+                                name: 'Director to one company',
+                                value: 'director to one'
+                            },
+                            {
+                                name: 'Director to many companies',
+                                value: 'director to many'
+                            },
+                            {
+                                name: 'Director to specific # of companies',
+                                value: 'director to specific'
+                            }
+                        ]
+                    },
+                    {
+                        label: 'Company has one or many directors',
+                        options: [
+                            {
+                                name: 'Company has one director',
+                                value: 'has one director'
+                            },
+                            {
+                                name: 'Company has many directors',
+                                value: 'has many directors'
+                            },
+                            {
+                                name: 'Company has specific # of directors',
+                                value: 'has specific directors'
+                            }
+                        ]
+                    },
+                    /*
                     {
                         label: 'Share Allocation',
                         options: [
@@ -591,40 +544,6 @@
                         ]
                     },
                     {
-                        label: 'Number of shares in several companies',
-                        options: [
-                            {
-                                name: 'Shareholder to one company',
-                                value: 'shareholder to one'
-                            },
-                            {
-                                name: 'Shareholder to many companies',
-                                value: 'shareholder to many'
-                            },
-                            {
-                                name: 'Shareholder to specific # of companies',
-                                value: 'shareholder to specific'
-                            }
-                        ]
-                    },
-                    {
-                        label: 'Number of shareholders in same company',
-                        options: [
-                            {
-                                name: 'Company has one shareholder',
-                                value: 'has one shareholder'
-                            },
-                            {
-                                name: 'Company has many shareholders',
-                                value: 'has many shareholders'
-                            },
-                            {
-                                name: 'Company has specific # of shareholders',
-                                value: 'has specific shareholders'
-                            }
-                        ]
-                    },
-                    {
                         label: 'Shareholder company',
                         options: [
                             {
@@ -637,51 +556,16 @@
                             },
                         ]
                     },
-                    {
-                        label: 'Duplicates',
-                        options: [
-                            {
-                                name: 'Duplicate shareholder names',
-                                value: 'duplicate shareholder names'
-                            },
-                            {
-                                name: 'Shareholder to itself',
-                                value: 'shareholder to itself'
-                            }
-                        ]
-                    },
-                    /*
-                    {
-                        label: 'Location',
-                        options: [
-                            {
-                                name: 'Country',
-                                value: 'country'
-                            },
-                            {
-                                name: 'Region',
-                                value: 'region'
-                            }
-                        ]
-                    },
                     */
                     {
                         label: 'Dates',
                         options: [
                             {
-                                name: 'Shareholder appointed date',
-                                value: 'shareholder appointed date'
-                            },
-                            {
-                                name: 'Shareholder ceased date',
-                                value: 'shareholder ceased date'
-                            },
-                            {
-                                name: 'Director appointed date',
+                                name: 'Appointed date',
                                 value: 'director appointed date'
                             },
                             {
-                                name: 'Director ceased date',
+                                name: 'Ceased date',
                                 value: 'director ceased date'
                             }
                         ]
@@ -691,21 +575,15 @@
                     start_percentage: 0,
                     end_percentage: 100,
 
-                    min_source_of_shares: 1,
-                    max_source_of_shares: 2,
-                    exact_source_of_shares: 1,
-                    source_of_shares_type: 'Minimum',
+                    min_companies: 1,
+                    max_companies: 2,
+                    exact_companies: 1,
+                    director_to_specific_type: 'Minimum',
 
-                    min_shareholders: 1,
-                    max_shareholders: 2,
-                    equal_shareholders: 1,
-                    specific_shareholders_type: 'Minimum',
-
-                    shareholder_appointed_start_date: null,
-                    shareholder_appointed_end_date: null,
-
-                    shareholder_ceased_start_date: null,
-                    shareholder_ceased_end_date: null,
+                    min_directors: 1,
+                    max_directors: 2,
+                    equal_directors: 1,
+                    specific_directors_type: 'Minimum',
 
                     director_appointed_start_date: null,
                     director_appointed_end_date: null,
@@ -724,20 +602,8 @@
                         value: 'company_name'
                     },
                     {
-                        name: 'Shareholder Name',
-                        value: 'shareholder_name'
-                    },
-                    {
-                        name: 'Percentage of shares',
-                        value: 'percentage_of_shares'
-                    },
-                    {
-                        name: 'Number of shares',
-                        value: 'number_of_shares'
-                    },
-                    {
-                        name: 'Total shares',
-                        value: 'total_shares'
+                        name: 'Director Name',
+                        value: 'director_name'
                     },
                     {
                         name: 'Created Date',
@@ -771,35 +637,7 @@
                         status: true
                     },
                     {
-                        name: 'shareholder',
-                        status: true
-                    },
-                    {
-                        name: '% of shares',
-                        status: true
-                    },
-                    {
-                        name: 'number of shares',
-                        status: true
-                    },
-                    {
-                        name: 'total shares',
-                        status: true
-                    },
-                    {
-                        name: 'nominee',
-                        status: true
-                    },
-                    {
                         name: 'director',
-                        status: true
-                    },
-                    {
-                        name: 'shareholder appointment date',
-                        status: true
-                    },
-                    {
-                        name: 'shareholder ceased date',
                         status: true
                     },
                     {
@@ -821,8 +659,8 @@
                 ],
 
                 //  Pagination attributes
-                currentPage: this.ownership_bundles.current_page,
-                perPage: this.ownership_bundles.per_page,
+                currentPage: this.directors.current_page,
+                perPage: this.directors.per_page,
 
 
             }
@@ -836,19 +674,19 @@
                 });
             },
             pageSize(){
-                return parseInt(this.ownership_bundles.per_page);
+                return parseInt(this.directors.per_page);
             },
-            filterByCustomShareholders(){
+            filterByCustomDirectorShares(){
                 return this.selectedFilters.filter((selectedFilter) => {
-                    return ['custom shareholder'].includes(selectedFilter);
+                    return ['custom director'].includes(selectedFilter);
                 }).length ? true : false;
             },
-            filterByShareholderToSpecificNumber(){
+            filterByDirectorToSpecificNumberOfCompanies(){
                 return this.selectedFilters.filter((selectedFilter) => {
-                    return ['shareholder to specific'].includes(selectedFilter);
+                    return ['director to specific'].includes(selectedFilter);
                 }).length ? true : false;
             },
-            filterByHasSpecificShareholders(){
+            filterByCompanyWithOneOrManyDirectors(){
                 return this.selectedFilters.filter((selectedFilter) => {
                     return ['has specific shareholders'].includes(selectedFilter);
                 }).length ? true : false;
@@ -874,8 +712,8 @@
                 }).length ? true : false;
             },
             showFilterSettings(){
-                return this.filterByCustomShareholders || this.filterByShareholderToSpecificNumber ||
-                       this.filterByHasSpecificShareholders || this.filterByShareholderAppointedDate ||
+                return this.filterByCustomDirectorShares || this.filterByDirectorToSpecificNumberOfCompanies ||
+                       this.filterByCompanyWithOneOrManyDirectors || this.filterByShareholderAppointedDate ||
                        this.filterByShareholderCeasedDate || this.filterByDirectorAppointedDate ||
                        this.filterByDirectorCeasedDate;
             },
@@ -899,38 +737,38 @@
                 }
 
                 //  Set the filter start percentage (If required)
-                if( this.filterByCustomShareholders && this.filterSettings.start_percentage ){
+                if( this.filterByCustomDirectorShares && this.filterSettings.start_percentage ){
                     url_append.start_percentage = this.filterSettings.start_percentage;
                 }
 
                 //  Set the filter end percentage (If required)
-                if( this.filterByCustomShareholders && this.filterSettings.end_percentage ){
+                if( this.filterByCustomDirectorShares && this.filterSettings.end_percentage ){
                     url_append.end_percentage = this.filterSettings.end_percentage;
                 }
 
                 //  Set the filter source of shares type (If required)
-                if( this.filterByShareholderToSpecificNumber && this.filterSettings.source_of_shares_type ){
-                    url_append.source_of_shares_type = this.filterSettings.source_of_shares_type;
+                if( this.filterByDirectorToSpecificNumberOfCompanies && this.filterSettings.director_to_specific_type ){
+                    url_append.director_to_specific_type = this.filterSettings.director_to_specific_type;
                 }
 
                 //  Set the filter exact source of shares (If required)
-                if( this.filterByShareholderToSpecificNumber && this.filterSettings.exact_source_of_shares ){
-                    if( ['Exact'].includes(this.filterSettings.source_of_shares_type) ){
-                        url_append.exact_source_of_shares = this.filterSettings.exact_source_of_shares;
+                if( this.filterByDirectorToSpecificNumberOfCompanies && this.filterSettings.exact_companies ){
+                    if( ['Exact'].includes(this.filterSettings.director_to_specific_type) ){
+                        url_append.exact_companies = this.filterSettings.exact_companies;
                     }
                 }
 
                 //  Set the filter min source of shares (If required)
-                if( this.filterByShareholderToSpecificNumber && this.filterSettings.min_source_of_shares ){
-                    if( ['Minimum', 'Range'].includes(this.filterSettings.source_of_shares_type) ){
-                        url_append.min_source_of_shares = this.filterSettings.min_source_of_shares;
+                if( this.filterByDirectorToSpecificNumberOfCompanies && this.filterSettings.min_companies ){
+                    if( ['Minimum', 'Range'].includes(this.filterSettings.director_to_specific_type) ){
+                        url_append.min_companies = this.filterSettings.min_companies;
                     }
                 }
 
                 //  Set the filter max source of shares (If required)
-                if( this.filterByShareholderToSpecificNumber && this.filterSettings.max_source_of_shares ){
-                    if( ['Maximum', 'Range'].includes(this.filterSettings.source_of_shares_type) ){
-                        url_append.max_source_of_shares = this.filterSettings.max_source_of_shares;
+                if( this.filterByDirectorToSpecificNumberOfCompanies && this.filterSettings.max_companies ){
+                    if( ['Maximum', 'Range'].includes(this.filterSettings.director_to_specific_type) ){
+                        url_append.max_companies = this.filterSettings.max_companies;
                     }
                 }
 
@@ -940,52 +778,30 @@
 
 
                 //  Set the filter specific shareholders type (If required)
-                if( this.filterByHasSpecificShareholders && this.filterSettings.specific_shareholders_type ){
+                if( this.filterByCompanyWithOneOrManyDirectors && this.filterSettings.specific_shareholders_type ){
                     url_append.specific_shareholders_type = this.filterSettings.specific_shareholders_type;
                 }
 
                 //  Set the filter equal shareholders (If required)
-                if( this.filterByHasSpecificShareholders && this.filterSettings.equal_shareholders ){
+                if( this.filterByCompanyWithOneOrManyDirectors && this.filterSettings.equal_shareholders ){
                     if( ['Exact'].includes(this.filterSettings.specific_shareholders_type) ){
                         url_append.equal_shareholders = this.filterSettings.equal_shareholders;
                     }
                 }
 
                 //  Set the filter min shareholders (If required)
-                if( this.filterByHasSpecificShareholders && this.filterSettings.min_shareholders ){
+                if( this.filterByCompanyWithOneOrManyDirectors && this.filterSettings.min_shareholders ){
                     if( ['Minimum', 'Range'].includes(this.filterSettings.specific_shareholders_type) ){
                         url_append.min_shareholders = this.filterSettings.min_shareholders;
                     }
                 }
 
                 //  Set the filter max shareholders (If required)
-                if( this.filterByHasSpecificShareholders && this.filterSettings.max_shareholders ){
+                if( this.filterByCompanyWithOneOrManyDirectors && this.filterSettings.max_shareholders ){
                     if( ['Maximum', 'Range'].includes(this.filterSettings.specific_shareholders_type) ){
                         url_append.max_shareholders = this.filterSettings.max_shareholders;
                     }
                 }
-
-                //  Set the filter shareholder appointment start date
-                if( this.filterByShareholderAppointedDate && this.filterSettings.shareholder_appointed_start_date ){
-                    url_append.shareholder_appointed_start_date = this.filterSettings.shareholder_appointed_start_date;
-                }
-
-                //  Set the filter shareholder appointment end date
-                if( this.filterByShareholderAppointedDate && this.filterSettings.shareholder_appointed_end_date ){
-                    url_append.shareholder_appointed_end_date = this.filterSettings.shareholder_appointed_end_date;
-                }
-
-                //  Set the filter shareholder appointment start date
-                if( this.filterByShareholderCeasedDate && this.filterSettings.shareholder_ceased_start_date ){
-                    url_append.shareholder_ceased_start_date = this.filterSettings.shareholder_ceased_start_date;
-                }
-
-                //  Set the filter shareholder appointment end date
-                if( this.filterByShareholderCeasedDate && this.filterSettings.shareholder_ceased_end_date ){
-                    url_append.shareholder_ceased_end_date = this.filterSettings.shareholder_ceased_end_date;
-                }
-
-
 
                 //  Set the filter director appointment start date
                 if( this.filterByDirectorAppointedDate && this.filterSettings.director_appointed_start_date ){
@@ -1044,7 +860,7 @@
                 }
             },
             exportUrl(){
-                return route('shareholders-export') + this.urlQueryParamsAsString;
+                return route('directors-export') + this.urlQueryParamsAsString;
             }
         },
         methods:{
@@ -1115,97 +931,68 @@
             },
             fetchOwnershipBundles(){
 
-                var options = { only: ['ownership_bundles'], preserveState: true, preserveScroll: true, replace: true };
+                var options = { only: ['directors'], preserveState: true, preserveScroll: true, replace: true };
 
-                var response = this.$inertia.get(route('shareholders'), this.urlQueryParamsAsObject, options);
+                var response = this.$inertia.get(route('directors'), this.urlQueryParamsAsObject, options);
 
                 Inertia.on('success', (event) => {
-                    this.setTableData(event.detail.page.props.ownership_bundles.data);
+                    this.setTableData(event.detail.page.props.directors.data);
                 })
 
             },
-            setTableData(ownership_bundles){
+            setTableData(directors){
 
-                if( ownership_bundles ){
-                    this.tableData = ownership_bundles.map(function(ownership_bundle){
+                if( directors ){
+                    this.tableData = directors.map(function(director){
 
                         var data = {
 
-                            //  Ownership bundle information
-                            id: ownership_bundle.id,
-                            percentage_of_shares: ownership_bundle.percentage_of_shares,
-                            number_of_shares: ownership_bundle.number_of_shares,
-                            total_shares: ownership_bundle.total_shares,
-                            shareholder_name: ownership_bundle.shareholder_name,
-                            total_shareholder_occurances: ownership_bundle.total_shareholder_occurances,
-                            is_shareholder_to_self: ownership_bundle.is_shareholder_to_self,
+                            //  Director information
+                            id: director.id,
+                            ceased_date: director.ceased_date,
+                            appointment_date: director.appointment_date
 
-                            //  Company information
-                            company_uin: ownership_bundle.company.uin,
-                            company_name: ownership_bundle.company.name,
-                            company_status: ownership_bundle.company.company_status,
-                            is_imported_from_cipa: ownership_bundle.company.is_imported_from_cipa,
-
-                            //  Company Attributes information
-                            is_registered: ownership_bundle.company.is_registered.status,
-                            is_cancelled: ownership_bundle.company.is_cancelled.status,
-                            is_removed: ownership_bundle.company.is_removed.status,
-                            is_not_found: ownership_bundle.company.is_not_found.status,
-                            is_compliant: ownership_bundle.company.is_compliant,
                         };
 
-                        //  If we have a shareholder
-                        if( ownership_bundle.shareholder ){
+                        //  If we have an individual
+                        if( director.individual ){
 
-                            //  Shareholder information
-                            data.nominee = ownership_bundle.shareholder.nominee.name;
-                            data.owner_type = ownership_bundle.shareholder.owner_type;
-                            data.shareholder_appointment_date = ownership_bundle.shareholder.appointment_date;
-                            data.shareholder_ceased_date = ownership_bundle.shareholder.ceased_date;
+                            //  Individual information
+                            data.full_name = director.individual.full_name;
 
-                            //  Additional Shareholder details (If Individual Shareholder)
-                            if( ownership_bundle.shareholder.owner_type == 'individual' ){
+                            //  Residential Addresses
+                            data.residential_addresses = director.individual.residential_address_lines;
 
-                                if( ownership_bundle.shareholder.owner ){
-
-                                    //  Residential Addresses
-                                    data.residential_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
-                                        return address.type == 'residential_address';
-                                    }).map((residentialAddress) => {
-                                        return residentialAddress.address_line;
-                                    }).join(' | ');
-
-                                    //  Postal Addresses
-                                    data.postal_addresses = ownership_bundle.shareholder.owner.addresses.filter((address) => {
-                                        return address.type == 'postal_address';
-                                    }).map((postalAddress) => {
-                                        return postalAddress.address_line;
-                                    }).join(' | ');
-
-                                }
-
-                            }else if( ownership_bundle.shareholder.owner_type == 'company' ){
-
-                                if( ownership_bundle.shareholder.owner ){
-
-                                    data.shareholder_uin = ownership_bundle.shareholder.owner.uin;
-
-                                }
-
-                            }
+                            //  Postal Addresses
+                            data.postal_addresses = director.individual.apostal_address_lines;
 
                         }
 
-                        //  If we have a director
-                        if( ownership_bundle.director ){
+                        //  If we have a company
+                        if( director.company ){
 
-                            //  Director information
-                            data.director_appointment_date = ownership_bundle.director.appointment_date;
-                            data.director_ceased_date = ownership_bundle.director.ceased_date;
+                            //  Individual information
+                            data.full_name = director.individual.full_name;
+
+                            //  Residential Addresses
+                            data.residential_addresses = director.individual.residential_address_lines;
+
+                            //  Postal Addresses
+                            data.postal_addresses = director.individual.postal_address_lines;
+
+                            //  Company information
+                            data.company_uin = director.company.uin,
+                            data.company_name = director.company.name,
+                            data.company_status = director.company.company_status,
+
+                            //  Company Attributes information
+                            data.is_registered = director.company.is_registered.status;
+                            data.is_cancelled = director.company.is_cancelled.status;
+                            data.is_removed = director.company.is_removed.status;
+                            data.is_not_found = director.company.is_not_found.status;
+                            data.is_compliant = director.company.is_compliant;
 
                         }
-
-                        data.is_director = ownership_bundle.director_id ? true : false;
 
                         return data;
                     });
@@ -1288,7 +1075,7 @@
             this.setFilterSettingsFromUrl();
             this.setSortByFromUrl();
             this.setSortByTypeFromUrl();
-            this.setTableData(this.ownership_bundles.data);
+            this.setTableData(this.directors.data);
         }
     }
 

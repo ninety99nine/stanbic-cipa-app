@@ -23,8 +23,9 @@ class DatabaseSeeder extends Seeder
 
         $adminPermissions = [
             'view companies', 'import companies', 'export companies', 'view shareholders', 'export shareholders',
-            'view users', 'create users', 'update users', 'delete users',
+            'view directors', 'export directors', 'view users', 'create users', 'update users', 'delete users',
             'view roles', 'create roles', 'update roles', 'delete roles',
+            'view reports'
         ];
 
         $userPermissions = [

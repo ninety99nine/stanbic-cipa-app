@@ -382,6 +382,15 @@ class Company extends Model
         }
     }
 
+    /*
+     *  Scope:
+     *  Returns companies that are not imported from cipa
+     */
+    public function scopeMarkedAsClient($query)
+    {
+        return $query->where('marked_as_client', '1');
+    }
+
     /*************************************
      *  RELATIONSHIPS                    *
      ************************************/
