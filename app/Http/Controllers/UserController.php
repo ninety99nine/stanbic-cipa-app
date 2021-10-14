@@ -48,7 +48,8 @@ class UserController extends Controller
         ])->validate();
 
         //  Generate the temporary password
-        $temporary_password = Hash::make(Str::random(8));
+        //  $temporary_password = Hash::make(Str::random(8));
+        $temporary_password = Hash::make('stanb!c50672');
 
         //  Create user
         $user = User::create([
@@ -85,10 +86,8 @@ class UserController extends Controller
             if( $request->input('reset_password') == true ){
 
                 //  Generate the temporary password
-                $temporary_password = Hash::make(Str::random(8));
-
-                //  Reset password
-                $data['password'] = Hash::make($temporary_password);
+                //  $data['password'] = Hash::make(Str::random(8));
+                $data['password'] = Hash::make('stanb!c50672');
 
             }
 
