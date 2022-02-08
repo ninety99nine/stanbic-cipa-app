@@ -4,11 +4,11 @@
         <div>
             <jet-application-logo :scale="2" class="m-auto" />
 
-            <div v-if="canLogin" class="mt-14">
+            <div v-if="canLogin" class="mt-14 text-center">
                 <inertia-link v-if="$page.props.user" href="/dashboard" class="text-sm text-gray-700 underline">Dashboard</inertia-link>
 
                 <template v-else>
-                    <inertia-link :href="route('login')" class="text-sm text-gray-700 underline">Log in</inertia-link>
+                    <inertia-link :href="route('login')" class="text-gray-700 underline">Log in</inertia-link>
                 </template>
             </div>
         </div>
