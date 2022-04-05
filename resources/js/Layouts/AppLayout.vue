@@ -11,7 +11,7 @@
                             <!-- Logo -->
                             <div class="flex-shrink-0 flex items-center">
                                 <inertia-link :href="route('dashboard')">
-                                    <jet-application-logo class="mt-1" :width="140" :height="50" />
+                                    <jet-application-logo class="mt-1" :width="50" />
                                 </inertia-link>
                             </div>
 

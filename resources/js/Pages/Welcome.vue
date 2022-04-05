@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+    <div class="min-h-screen flex items-center justify-center">
 
         <div>
             <jet-application-logo :scale="2" class="m-auto" />
